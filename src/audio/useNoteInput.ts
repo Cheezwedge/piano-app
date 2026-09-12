@@ -60,7 +60,7 @@ export function useNoteInput({ enabled, calibrationCents, onNote }: Options) {
         if (!cancelled) setMic({ status: "listening" });
         else stopMic();
       } catch {
-        if (!cancelled) setMic({ status: "error", detail: "Mic permission needed" });
+        if (!cancelled) setMic({ status: "error", detail: "Permission needed" });
       }
 
       try {
@@ -74,7 +74,7 @@ export function useNoteInput({ enabled, calibrationCents, onNote }: Options) {
           },
         });
       } catch {
-        if (!cancelled) setMidi({ status: "error", detail: "MIDI unavailable" });
+        if (!cancelled) setMidi({ status: "error", detail: "Unavailable" });
       }
     };
 

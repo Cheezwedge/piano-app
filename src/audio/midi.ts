@@ -13,7 +13,7 @@ interface MidiWatchOptions {
 
 export async function startMidiWatch(options: MidiWatchOptions): Promise<() => void> {
   if (!("requestMIDIAccess" in navigator)) {
-    options.onStatus({ status: "error", detail: "Web MIDI is not in this browser" });
+    options.onStatus({ status: "error", detail: "Not in this browser" });
     return () => {};
   }
 

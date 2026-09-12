@@ -8,8 +8,6 @@ describe("listening labels", () => {
     expect(listenLabel({ status: "calibrating" })).toBe("Calibrating…");
     expect(listenLabel({ status: "listening" })).toBe("Listening");
     expect(listenLabel({ status: "detected", detail: "C4" })).toBe("Heard C4");
-    expect(listenLabel({ status: "error", detail: "Mic permission needed" })).toBe(
-      "Mic permission needed",
-    );
+    expect(listenLabel({ status: "error", detail: "Permission needed" })).toBe("Permission needed");
   });
 });
