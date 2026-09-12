@@ -30,6 +30,7 @@ export function PianoKeyboard({ targetMidi, hintVisible, lastPlayed, feedback, o
                 onPlay(midi);
               }}
             >
+              {isTarget ? <span className="hint-flag">this key</span> : null}
               <span className="key-label">{midiToName(midi).replace(/\d/, "")}</span>
             </button>
           );

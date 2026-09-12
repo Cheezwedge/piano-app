@@ -1,9 +1,9 @@
 import type { FeedbackKind, LessonNote } from "../types";
 
-const LINE_GAP = 18;
+const LINE_GAP = 20;
 const E4_MIDI = 64;
 
-function staffStepsFromE4(midi: number): number {
+export function staffStepsFromE4(midi: number): number {
   const diatonic = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
   const octave = Math.floor(midi / 12) - Math.floor(E4_MIDI / 12);
   const step = diatonic[midi % 12] - diatonic[E4_MIDI % 12];
@@ -17,13 +17,13 @@ interface Props {
 }
 
 export function Staff({ note, feedback, showFinger }: Props) {
-  const width = 420;
-  const height = 180;
-  const e4Y = 108;
-  const x = 250;
+  const width = 440;
+  const height = 200;
+  const e4Y = 118;
+  const x = 268;
   const steps = staffStepsFromE4(note.midi);
   const y = e4Y - steps * (LINE_GAP / 2);
-  const needsLedger = note.midi === 60;
+  const needsLedger = note.midi <= 60;
 
   const fill =
     feedback === "correct"
@@ -40,42 +40,70 @@ export function Staff({ note, feedback, showFinger }: Props) {
         {[0, 1, 2, 3, 4].map((line) => (
           <line
             key={line}
-            x1="70"
-            x2="400"
+            x1="86"
+            x2="420"
             y1={e4Y - line * LINE_GAP}
             y2={e4Y - line * LINE_GAP}
             stroke="#2c2418"
-            strokeWidth="1.6"
+            strokeWidth="1.7"
           />
         ))}
-        <TrebleClef x={78} y={36} />
+        <TrebleClef />
         {needsLedger ? (
-          <line x1={x - 22} x2={x + 22} y1={y} y2={y} stroke="#2c2418" strokeWidth="1.6" />
+          <line x1={x - 26} x2={x + 26} y1={y} y2={y} stroke="#2c2418" strokeWidth="1.8" />
         ) : null}
         <ellipse
           cx={x}
           cy={y}
-          rx="13"
-          ry="9"
+          rx="14"
+          ry="10"
           transform={`rotate(-18 ${x} ${y})`}
           fill={fill}
           data-testid="staff-note"
         />
-        <line x1={x + 11} x2={x + 11} y1={y} y2={y - 52} stroke={fill} strokeWidth="2.2" />
+        <line x1={x + 12} x2={x + 12} y1={y} y2={y - 56} stroke={fill} strokeWidth="2.3" />
         {showFinger ? (
-          <text x={x} y={y - 62} textAnchor="middle" className="finger-svg">
+          <text x={x} y={y - 66} textAnchor="middle" className="finger-svg">
             {note.finger}
           </text>
         ) : null}
+        <text x={x} y={188} textAnchor="middle" className="staff-name">
+          {note.name}
+        </text>
       </svg>
     </div>
   );
 }
 
-function TrebleClef({ x, y }: { x: number; y: number }) {
+/** Original G-clef drawing for Home Keys (not copied from a commercial app). */
+function TrebleClef() {
   return (
-    <g transform={`translate(${x} ${y}) scale(0.92)`} fill="#2c2418">
-      <path d="M34 8c6 2 10 10 8 20-3 18-10 36-11 54 8 4 14 12 14 22 0 14-12 24-26 24s-26-10-26-24c0-10 6-18 16-22 1-8 4-20 7-36C14 42 8 34 8 24 8 10 20 2 34 8zm-4 86c-8 0-14-5-14-12s6-12 12-14c-1 10 1 20 2 26zm6-70c0-8-4-12-8-14-6-2-10 2-10 8 0 6 4 16 6 24 4-6 12-10 12-18z" />
+    <g fill="none" stroke="#2c2418" strokeLinecap="round" strokeLinejoin="round">
+      <path
+        d="M104 36
+           C118 34 126 48 118 64
+           C108 86 96 104 97 122
+           C98 142 118 152 134 144
+           C150 136 152 116 136 108
+           C120 100 106 112 108 126
+           C110 140 126 146 138 138"
+        strokeWidth="3.1"
+      />
+      <path
+        d="M97 122
+           C88 98 92 68 106 48
+           C112 38 110 28 100 28
+           C90 28 88 40 96 44"
+        strokeWidth="3.1"
+      />
+      <path
+        d="M97 122
+           L92 176
+           C90 190 76 194 68 184
+           C60 174 76 166 88 176"
+        strokeWidth="3.1"
+      />
+      <circle cx="134" cy="118" r="3.2" fill="#2c2418" stroke="none" />
     </g>
   );
 }

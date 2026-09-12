@@ -11,7 +11,7 @@ import { useActiveKid, useApp } from "../store/AppState";
 import type { FeedbackKind, LessonStage } from "../types";
 
 const HINT_DELAY_MS = 5000;
-const ADVANCE_MS = 700;
+const ADVANCE_MS = 900;
 
 export function LessonScreen() {
   const { persist, setScreen, checkPin, markLesson1Complete } = useApp();
@@ -154,10 +154,11 @@ export function LessonScreen() {
           <h2 data-testid="target-note">{current.name}</h2>
           <FeedbackBanner feedback={feedback} lastPlayed={lastPlayed} />
           <p className="status-line" data-testid="input-status">
-            {micStatus} · {midiStatus}
+            {micError
+              ? "Tap the keys below, use a MIDI keyboard, or allow the mic."
+              : `${micStatus} · ${midiStatus}`}
             {lastSource ? ` · last: ${lastSource}` : ""}
           </p>
-          {micError ? <p className="muted">{micError}</p> : null}
         </div>
       </section>
 
