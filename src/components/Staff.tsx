@@ -1,6 +1,6 @@
 import type { FeedbackKind, LessonNote } from "../types";
 
-const LINE_GAP = 20;
+const LINE_GAP = 26;
 const E4_MIDI = 64;
 
 export function staffStepsFromE4(midi: number): number {
@@ -18,8 +18,8 @@ interface Props {
 
 export function Staff({ note, feedback, showFinger }: Props) {
   const width = 440;
-  const height = 200;
-  const e4Y = 118;
+  const height = 230;
+  const e4Y = 128;
   const x = 268;
   const steps = staffStepsFromE4(note.midi);
   const y = e4Y - steps * (LINE_GAP / 2);
@@ -67,7 +67,7 @@ export function Staff({ note, feedback, showFinger }: Props) {
             {note.finger}
           </text>
         ) : null}
-        <text x={x} y={188} textAnchor="middle" className="staff-name">
+        <text x={x} y={214} textAnchor="middle" className="staff-name">
           {note.name}
         </text>
       </svg>
