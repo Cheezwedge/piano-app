@@ -1,0 +1,17 @@
+{
+  "name": "Home Keys",
+  "short_name": "Home Keys",
+  "description": "A calm piano primer for kids at home.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#f4efe6",
+  "theme_color": "#f4efe6",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
