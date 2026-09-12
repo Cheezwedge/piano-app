@@ -1,19 +1,38 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { formatLockRemaining, type PinResult } from "../lib/pin";
+import { useApp } from "../store/AppState";
 
 interface Props {
   title: string;
   subtitle?: string;
-  onSubmit: (pin: string) => Promise<boolean> | boolean;
+  onSubmit: (pin: string) => Promise<PinResult> | PinResult;
   onCancel?: () => void;
   submitLabel?: string;
 }
 
 export function PinPad({ title, subtitle, onSubmit, onCancel, submitLabel = "Unlock" }: Props) {
+  const { persist } = useApp();
   const [digits, setDigits] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [now, setNow] = useState(Date.now());
+
+  const locked = persist.pinLockedUntil > now;
+
+  useEffect(() => {
+    if (!locked) return;
+    const id = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(id);
+  }, [locked]);
+
+  useEffect(() => {
+    if (locked) {
+      setError(`Too many tries. Wait ${formatLockRemaining(persist.pinLockedUntil, now)}.`);
+    }
+  }, [locked, persist.pinLockedUntil, now]);
 
   const press = (value: string) => {
+    if (locked) return;
     setError("");
     if (value === "clear") {
       setDigits("");
@@ -27,15 +46,16 @@ export function PinPad({ title, subtitle, onSubmit, onCancel, submitLabel = "Unl
   };
 
   const submit = async () => {
+    if (locked) return;
     if (digits.length !== 4) {
       setError("Enter 4 digits.");
       return;
     }
     setBusy(true);
-    const ok = await onSubmit(digits);
+    const result = await onSubmit(digits);
     setBusy(false);
-    if (!ok) {
-      setError("That PIN does not match.");
+    if (!result.ok) {
+      setError(result.message);
       setDigits("");
     }
   };
@@ -57,13 +77,18 @@ export function PinPad({ title, subtitle, onSubmit, onCancel, submitLabel = "Unl
               type="button"
               className="pin-key"
               data-testid={`pin-key-${key}`}
+              disabled={locked}
               onClick={() => press(key)}
             >
               {key === "clear" ? "Clear" : key === "del" ? "⌫" : key}
             </button>
           ))}
         </div>
-        {error ? <p className="error-text">{error}</p> : null}
+        {error ? (
+          <p className="error-text" data-testid="pin-error">
+            {error}
+          </p>
+        ) : null}
         <div className="row-actions">
           {onCancel ? (
             <button type="button" className="btn ghost" onClick={onCancel}>
@@ -74,7 +99,7 @@ export function PinPad({ title, subtitle, onSubmit, onCancel, submitLabel = "Unl
             type="button"
             className="btn primary"
             data-testid="pin-submit"
-            disabled={busy}
+            disabled={busy || locked}
             onClick={() => void submit()}
           >
             {submitLabel}

@@ -2,12 +2,22 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import { loadState, saveState } from "../lib/storage";
-import { hashPin, verifyPin } from "../lib/pin";
+import {
+  applyFailedPinAttempt,
+  createPinRecord,
+  isUnlockWindowOpen,
+  lockoutMessage,
+  mismatchMessage,
+  PIN_UNLOCK_MS,
+  verifyPin,
+  type PinResult,
+} from "../lib/pin";
 import {
   AVATARS,
   DEFAULT_STATE,
@@ -24,9 +34,10 @@ interface AppContextValue {
   beginSession: () => void;
   extendSession: () => void;
   pinUnlockedUntil: number;
+  isParentUnlocked: () => boolean;
   unlockParent: () => void;
   setPin: (pin: string) => Promise<void>;
-  checkPin: (pin: string) => Promise<boolean>;
+  checkPin: (pin: string) => Promise<PinResult>;
   addKid: (name: string, avatar: string) => void;
   removeKid: (id: string) => void;
   setActiveKid: (id: string) => void;
@@ -54,14 +65,65 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPersist((prev) => persistNow(recipe(prev)));
   }, []);
 
+  useEffect(() => {
+    if (persist.pinHash && persist.activeKidId && sessionStartedAt == null) {
+      setSessionStartedAt(Date.now());
+    }
+  }, [persist.pinHash, persist.activeKidId, sessionStartedAt]);
+
   const setPin = useCallback(async (pin: string) => {
-    const pinHash = await hashPin(pin);
-    update((prev) => ({ ...prev, pinHash }));
+    const record = await createPinRecord(pin);
+    update((prev) => ({
+      ...prev,
+      ...record,
+      pinFailedAttempts: 0,
+      pinLockedUntil: 0,
+    }));
+    setPinUnlockedUntil(Date.now() + PIN_UNLOCK_MS);
   }, [update]);
 
+  const unlockParent = useCallback(() => {
+    setPinUnlockedUntil(Date.now() + PIN_UNLOCK_MS);
+  }, []);
+
+  const isParentUnlocked = useCallback(
+    () => isUnlockWindowOpen(pinUnlockedUntil),
+    [pinUnlockedUntil],
+  );
+
   const checkPin = useCallback(
-    async (pin: string) => verifyPin(pin, persist.pinHash),
-    [persist.pinHash],
+    async (pin: string): Promise<PinResult> => {
+      const now = Date.now();
+      if (persist.pinLockedUntil > now) {
+        return { ok: false, reason: "locked", message: lockoutMessage(persist.pinLockedUntil, now) };
+      }
+
+      const ok = await verifyPin(pin, persist);
+      if (ok) {
+        const needsUpgrade = !persist.pinSalt;
+        if (needsUpgrade) {
+          const record = await createPinRecord(pin);
+          update((prev) => ({
+            ...prev,
+            ...record,
+            pinFailedAttempts: 0,
+            pinLockedUntil: 0,
+          }));
+        } else {
+          update((prev) => ({ ...prev, pinFailedAttempts: 0, pinLockedUntil: 0 }));
+        }
+        setPinUnlockedUntil(now + PIN_UNLOCK_MS);
+        return { ok: true };
+      }
+
+      const next = applyFailedPinAttempt(persist.pinFailedAttempts, now);
+      update((prev) => ({ ...prev, ...next }));
+      if (next.pinLockedUntil > now) {
+        return { ok: false, reason: "locked", message: lockoutMessage(next.pinLockedUntil, now) };
+      }
+      return { ok: false, reason: "mismatch", message: mismatchMessage(next.pinFailedAttempts) };
+    },
+    [persist, update],
   );
 
   const addKid = useCallback(
@@ -101,6 +163,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setActiveKid = useCallback(
     (id: string) => {
       update((prev) => ({ ...prev, activeKidId: id }));
+      setSessionStartedAt(Date.now());
     },
     [update],
   );
@@ -137,7 +200,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       beginSession: () => setSessionStartedAt(Date.now()),
       extendSession: () => setSessionStartedAt(Date.now()),
       pinUnlockedUntil,
-      unlockParent: () => setPinUnlockedUntil(Date.now() + 2 * 60 * 1000),
+      isParentUnlocked,
+      unlockParent,
       setPin,
       checkPin,
       addKid,
@@ -152,6 +216,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       screen,
       sessionStartedAt,
       pinUnlockedUntil,
+      isParentUnlocked,
+      unlockParent,
       setPin,
       checkPin,
       addKid,

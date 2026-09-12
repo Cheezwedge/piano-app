@@ -25,7 +25,10 @@ export function SetupPinScreen() {
   return (
     <main className="page narrow" data-testid="setup-pin-screen">
       <h1>Parent PIN</h1>
-      <p className="muted">Kids will need this to open settings or leave a lesson early.</p>
+      <p className="muted">
+        Kids will need this for settings, switching profiles, or leaving a lesson early. After five
+        wrong tries the pad pauses.
+      </p>
       <label>
         New PIN
         <input

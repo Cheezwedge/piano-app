@@ -7,8 +7,13 @@ interface Props {
 }
 
 export function TimeUpScreen({ onHome }: Props) {
-  const { checkPin, extendSession } = useApp();
+  const { checkPin, extendSession, isParentUnlocked } = useApp();
   const [mode, setMode] = useState<"pick" | "extend" | "home">("pick");
+
+  const finish = (next: "extend" | "home") => {
+    if (next === "home") onHome();
+    else extendSession();
+  };
 
   if (mode === "pick") {
     return (
@@ -17,10 +22,18 @@ export function TimeUpScreen({ onHome }: Props) {
           <h2>Practice time is done</h2>
           <p className="muted">A grown-up PIN is needed to keep going or to leave.</p>
           <div className="row-actions">
-            <button type="button" className="btn ghost" onClick={() => setMode("home")}>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => (isParentUnlocked() ? finish("home") : setMode("home"))}
+            >
               Go home
             </button>
-            <button type="button" className="btn primary" onClick={() => setMode("extend")}>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() => (isParentUnlocked() ? finish("extend") : setMode("extend"))}
+            >
               Add more time
             </button>
           </div>
@@ -36,11 +49,9 @@ export function TimeUpScreen({ onHome }: Props) {
       submitLabel={mode === "home" ? "Go home" : "Continue"}
       onCancel={() => setMode("pick")}
       onSubmit={async (pin) => {
-        const ok = await checkPin(pin);
-        if (!ok) return false;
-        if (mode === "home") onHome();
-        else extendSession();
-        return true;
+        const result = await checkPin(pin);
+        if (result.ok) finish(mode);
+        return result;
       }}
     />
   );

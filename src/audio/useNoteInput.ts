@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { midiToName } from "./notes";
 import { startMidiWatch } from "./midi";
 import { startMicWatch } from "./pitch";
 import { resumeAudio } from "./synth";
+import { LISTEN_OFF, type ListenChannel } from "./listenStatus";
 
 export interface IncomingNote {
   midi: number;
@@ -15,16 +17,16 @@ interface Options {
 }
 
 export function useNoteInput({ enabled, calibrationCents, onNote }: Options) {
-  const [micStatus, setMicStatus] = useState("Mic off");
-  const [midiStatus, setMidiStatus] = useState("MIDI off");
-  const [micError, setMicError] = useState<string | null>(null);
+  const [mic, setMic] = useState<ListenChannel>(LISTEN_OFF);
+  const [midi, setMidi] = useState<ListenChannel>(LISTEN_OFF);
   const onNoteRef = useRef(onNote);
   onNoteRef.current = onNote;
+  const flashRef = useRef<number>(0);
 
   useEffect(() => {
     if (!enabled) {
-      setMicStatus("Mic off");
-      setMidiStatus("MIDI off");
+      setMic(LISTEN_OFF);
+      setMidi(LISTEN_OFF);
       return;
     }
 
@@ -32,35 +34,47 @@ export function useNoteInput({ enabled, calibrationCents, onNote }: Options) {
     let stopMidi: (() => void) | undefined;
     let cancelled = false;
 
+    const flash = (source: "mic" | "midi", midiNote: number) => {
+      const next: ListenChannel = { status: "detected", detail: midiToName(midiNote) };
+      if (source === "mic") setMic(next);
+      else setMidi(next);
+      window.clearTimeout(flashRef.current);
+      flashRef.current = window.setTimeout(() => {
+        if (source === "mic") setMic((prev) => (prev.status === "detected" ? { status: "listening" } : prev));
+        else setMidi((prev) => (prev.status === "detected" ? { ...prev, status: "listening" } : prev));
+      }, 900);
+    };
+
     const start = async () => {
       await resumeAudio();
+      setMic({ status: "starting" });
+      setMidi({ status: "starting" });
       try {
         stopMic = await startMicWatch({
           calibrationCents,
-          onNote: (hit) => onNoteRef.current({ midi: hit.midi, source: "mic" }),
+          onNote: (hit) => {
+            flash("mic", hit.midi);
+            onNoteRef.current({ midi: hit.midi, source: "mic" });
+          },
         });
-        if (!cancelled) {
-          setMicStatus("Mic listening");
-          setMicError(null);
-        } else {
-          stopMic();
-        }
+        if (!cancelled) setMic({ status: "listening" });
+        else stopMic();
       } catch {
-        if (!cancelled) {
-          setMicStatus("Mic blocked");
-          setMicError("Microphone permission is needed for acoustic pianos.");
-        }
+        if (!cancelled) setMic({ status: "error", detail: "Mic permission needed" });
       }
 
       try {
         stopMidi = await startMidiWatch({
-          onNote: (hit) => onNoteRef.current({ midi: hit.midi, source: "midi" }),
-          onStatus: (label) => {
-            if (!cancelled) setMidiStatus(label);
+          onNote: (hit) => {
+            flash("midi", hit.midi);
+            onNoteRef.current({ midi: hit.midi, source: "midi" });
+          },
+          onStatus: (state) => {
+            if (!cancelled) setMidi(state);
           },
         });
       } catch {
-        if (!cancelled) setMidiStatus("MIDI unavailable");
+        if (!cancelled) setMidi({ status: "error", detail: "MIDI unavailable" });
       }
     };
 
@@ -68,14 +82,15 @@ export function useNoteInput({ enabled, calibrationCents, onNote }: Options) {
 
     return () => {
       cancelled = true;
+      window.clearTimeout(flashRef.current);
       stopMic?.();
       stopMidi?.();
     };
   }, [enabled, calibrationCents]);
 
-  const playOnScreen = (midi: number) => {
-    onNoteRef.current({ midi, source: "screen" });
+  const playOnScreen = (midiNote: number) => {
+    onNoteRef.current({ midi: midiNote, source: "screen" });
   };
 
-  return { micStatus, midiStatus, micError, playOnScreen };
+  return { mic, midi, playOnScreen };
 }

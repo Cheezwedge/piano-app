@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { midiToName } from "../audio/notes";
 import { playMidiNote, resumeAudio } from "../audio/synth";
 import { useNoteInput } from "../audio/useNoteInput";
+import { ListeningStatus } from "../components/ListeningStatus";
 import { PianoKeyboard } from "../components/PianoKeyboard";
 import { PinPad } from "../components/PinPad";
 import { Staff } from "../components/Staff";
@@ -14,7 +15,7 @@ const HINT_DELAY_MS = 5000;
 const ADVANCE_MS = 900;
 
 export function LessonScreen() {
-  const { persist, setScreen, checkPin, markLesson1Complete } = useApp();
+  const { persist, setScreen, checkPin, markLesson1Complete, isParentUnlocked } = useApp();
   const kid = useActiveKid();
   const [stageIndex, setStageIndex] = useState(0);
   const [noteIndex, setNoteIndex] = useState(0);
@@ -95,7 +96,7 @@ export function LessonScreen() {
     }, ADVANCE_MS);
   };
 
-  const { micStatus, midiStatus, micError } = useNoteInput({
+  const { mic, midi } = useNoteInput({
     enabled: !isDemo && !complete,
     calibrationCents: persist.calibrationCents,
     onNote: (note) => handleIncoming(note.midi, note.source),
@@ -140,7 +141,15 @@ export function LessonScreen() {
             <span key={item.id} className={index === stageIndex ? "on" : index < stageIndex ? "done" : ""} />
           ))}
         </div>
-        <button type="button" className="btn ghost" data-testid="leave-lesson" onClick={() => setLeaveOpen(true)}>
+        <button
+          type="button"
+          className="btn ghost"
+          data-testid="leave-lesson"
+          onClick={() => {
+            if (isParentUnlocked()) setScreen("home");
+            else setLeaveOpen(true);
+          }}
+        >
           Leave
         </button>
       </header>
@@ -153,12 +162,12 @@ export function LessonScreen() {
           <p className="prompt-kicker">{isDemo ? "Listen" : "Play this note"}</p>
           <h2 data-testid="target-note">{current.name}</h2>
           <FeedbackBanner feedback={feedback} lastPlayed={lastPlayed} />
-          <p className="status-line" data-testid="input-status">
-            {micError
-              ? "Tap the keys below, use a MIDI keyboard, or allow the mic."
-              : `${micStatus} · ${midiStatus}`}
-            {lastSource ? ` · last: ${lastSource}` : ""}
-          </p>
+          {isDemo ? (
+            <p className="status-line">Demo is playing through the speakers. Listening starts when you are ready.</p>
+          ) : (
+            <ListeningStatus mic={mic} midi={midi} />
+          )}
+          {lastSource ? <p className="status-line">Last input: {lastSource}</p> : null}
         </div>
       </section>
 
@@ -224,9 +233,9 @@ export function LessonScreen() {
           submitLabel="Leave"
           onCancel={() => setLeaveOpen(false)}
           onSubmit={async (pin) => {
-            const ok = await checkPin(pin);
-            if (ok) setScreen("home");
-            return ok;
+            const result = await checkPin(pin);
+            if (result.ok) setScreen("home");
+            return result;
           }}
         />
       ) : null}

@@ -5,9 +5,26 @@ import { PinPad } from "../components/PinPad";
 import { useActiveKid, useApp } from "../store/AppState";
 
 export function HomeScreen() {
-  const { persist, setScreen, setActiveKid, checkPin, unlockParent, beginSession } = useApp();
+  const { persist, setScreen, setActiveKid, checkPin, isParentUnlocked } = useApp();
   const kid = useActiveKid();
-  const [gate, setGate] = useState<"settings" | null>(null);
+  const [gate, setGate] = useState<"settings" | { switchTo: string } | null>(null);
+
+  const openSettings = () => {
+    if (isParentUnlocked()) {
+      setScreen("settings");
+      return;
+    }
+    setGate("settings");
+  };
+
+  const requestSwitch = (id: string) => {
+    if (id === kid?.id) return;
+    if (isParentUnlocked()) {
+      setActiveKid(id);
+      return;
+    }
+    setGate({ switchTo: id });
+  };
 
   return (
     <main className="page home" data-testid="home-screen">
@@ -23,7 +40,7 @@ export function HomeScreen() {
           type="button"
           className="btn ghost"
           data-testid="open-settings"
-          onClick={() => setGate("settings")}
+          onClick={openSettings}
         >
           Grown-up settings
         </button>
@@ -36,7 +53,7 @@ export function HomeScreen() {
             type="button"
             className={item.id === kid?.id ? "chip selected" : "chip"}
             data-testid={`kid-chip-${item.id}`}
-            onClick={() => setActiveKid(item.id)}
+            onClick={() => requestSwitch(item.id)}
           >
             <span>{item.avatar}</span>
             {item.name}
@@ -56,10 +73,7 @@ export function HomeScreen() {
           className="btn primary xl"
           data-testid="start-lesson"
           disabled={!kid}
-          onClick={() => {
-            beginSession();
-            setScreen("lesson");
-          }}
+          onClick={() => setScreen("lesson")}
         >
           Start Lesson 1
         </button>
@@ -86,13 +100,29 @@ export function HomeScreen() {
           subtitle="Settings stay behind this PIN."
           onCancel={() => setGate(null)}
           onSubmit={async (pin) => {
-            const ok = await checkPin(pin);
-            if (ok) {
-              unlockParent();
+            const result = await checkPin(pin);
+            if (result.ok) {
               setGate(null);
               setScreen("settings");
             }
-            return ok;
+            return result;
+          }}
+        />
+      ) : null}
+
+      {gate && typeof gate === "object" ? (
+        <PinPad
+          title="Switch profiles?"
+          subtitle="A grown-up PIN is needed to change who is practicing."
+          submitLabel="Switch"
+          onCancel={() => setGate(null)}
+          onSubmit={async (pin) => {
+            const result = await checkPin(pin);
+            if (result.ok) {
+              setActiveKid(gate.switchTo);
+              setGate(null);
+            }
+            return result;
           }}
         />
       ) : null}

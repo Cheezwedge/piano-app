@@ -37,6 +37,10 @@ export interface KidProfile {
 
 export interface PersistedState {
   pinHash: string;
+  pinSalt: string;
+  pinKdf: string;
+  pinFailedAttempts: number;
+  pinLockedUntil: number;
   sessionLimitMinutes: number;
   showFingerNumbers: boolean;
   calibrationCents: number;
@@ -48,6 +52,10 @@ export const AVATARS = ["🦊", "🐻", "🐰", "🐸", "🦉", "🐢", "🐱", 
 
 export const DEFAULT_STATE: PersistedState = {
   pinHash: "",
+  pinSalt: "",
+  pinKdf: "",
+  pinFailedAttempts: 0,
+  pinLockedUntil: 0,
   sessionLimitMinutes: 15,
   showFingerNumbers: true,
   calibrationCents: 0,

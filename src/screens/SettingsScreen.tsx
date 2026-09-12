@@ -33,7 +33,10 @@ export function SettingsScreen() {
 
       <section>
         <h2>Session time</h2>
-        <p className="muted">When the timer ends, practice pauses until a PIN is entered. 0 means no limit.</p>
+        <p className="muted">
+          The timer runs whenever a kid profile is active — home and Lesson 1. When it ends, practice
+          pauses until a PIN is entered. 0 means no limit.
+        </p>
         <div className="choice-row">
           {LIMITS.map((minutes) => (
             <button

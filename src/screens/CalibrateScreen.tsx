@@ -1,29 +1,32 @@
 import { useState } from "react";
+import { listenLabel, type ListenChannel } from "../audio/listenStatus";
 import { measureMiddleC } from "../audio/pitch";
 import { resumeAudio } from "../audio/synth";
 import { useApp } from "../store/AppState";
 
 export function CalibrateScreen() {
   const { persist, updateSettings, setScreen } = useApp();
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("Play and hold middle C on your piano.");
+  const [channel, setChannel] = useState<ListenChannel>({
+    status: "off",
+    detail: "Play and hold middle C",
+  });
 
   const listen = async () => {
-    setBusy(true);
-    setMessage("Listening for middle C…");
+    setChannel({ status: "calibrating", detail: "Play and hold middle C" });
     try {
       await resumeAudio();
       const cents = await measureMiddleC(2200);
       if (cents == null) {
-        setMessage("No steady pitch yet. Try again closer to the microphone, or use MIDI.");
+        setChannel({ status: "error", detail: "No steady pitch. Try closer to the mic, or use MIDI." });
       } else {
         updateSettings({ calibrationCents: cents });
-        setMessage(`Saved. Offset is ${cents.toFixed(0)} cents from concert middle C.`);
+        setChannel({
+          status: "detected",
+          detail: `Saved · ${cents.toFixed(0)} cents from concert C`,
+        });
       }
     } catch {
-      setMessage("Microphone permission is required for calibration.");
-    } finally {
-      setBusy(false);
+      setChannel({ status: "error", detail: "Mic permission is required for calibration." });
     }
   };
 
@@ -33,14 +36,23 @@ export function CalibrateScreen() {
       <p>
         Home Keys expects concert pitch (A4 = 440). Play middle C so we can learn this room and this piano.
       </p>
-      <p className="muted">{message}</p>
+      <p className={`listen-pill is-${channel.status}`} data-testid="calibrate-status">
+        <span className="listen-dot" aria-hidden="true" />
+        <strong>Mic</strong>
+        <span>{listenLabel(channel)}</span>
+      </p>
       <p className="muted">Stored offset: {persist.calibrationCents.toFixed(0)} cents</p>
       <div className="row-actions">
         <button type="button" className="btn ghost" onClick={() => setScreen("settings")}>
           Back
         </button>
-        <button type="button" className="btn primary" disabled={busy} onClick={() => void listen()}>
-          {busy ? "Listening…" : "Listen for middle C"}
+        <button
+          type="button"
+          className="btn primary"
+          disabled={channel.status === "calibrating"}
+          onClick={() => void listen()}
+        >
+          {channel.status === "calibrating" ? "Calibrating…" : "Listen for middle C"}
         </button>
       </div>
     </main>

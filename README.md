@@ -2,7 +2,7 @@
 
 A tablet-first piano primer for kids. Home Keys is an original product. It is inspired by the *idea* of guided piano practice (listen, see the staff, play the matching key) and does **not** copy Simply Piano — or any other commercial app — assets, branding, songs, lesson scripts, UI chrome, or course content.
 
-The first lesson teaches the first five treble notes around middle C: **C D E F G**. Practice mode waits on the target note. Parents keep a PIN on settings and early exit. There are no ads, purchases, social accounts, or store links.
+The first lesson teaches the first five treble notes around middle C: **C D E F G**. Practice mode waits on the target note. Parents keep a PIN on settings, profile switching, and early exit. There are no ads, purchases, social accounts, or store links.
 
 ## Run locally
 
@@ -18,6 +18,7 @@ Other scripts:
 ```bash
 npm test
 npm run build
+npm run preview   # production build + service worker (offline check)
 ```
 
 Data stays in this browser (`localStorage` key `home-keys-v1`). Reset it from Grown-up settings.
@@ -27,7 +28,7 @@ Data stays in this browser (`localStorage` key `home-keys-v1`). Reset it from Gr
 1. Grown-up creates a 4-digit PIN.
 2. Grown-up adds a kid profile.
 3. Kid starts **Lesson 1 · First five notes**.
-4. Settings and leaving a lesson early both ask for the PIN.
+4. Settings, switching kid profiles, and leaving a lesson early all ask for the PIN (unless a parent just unlocked).
 
 ## Lesson 1 brief
 
@@ -53,23 +54,45 @@ Guided stage shows the hint immediately, so those successes are gold. Garden Wal
 
 ## Mic vs MIDI vs on-screen keys
 
-Home Keys listens on three paths at once during practice:
+Home Keys listens on three paths at once during practice. The lesson chrome shows a **Mic** pill and a **MIDI** pill:
+
+| Pill state | Meaning |
+| --- | --- |
+| Off | Listening is not running (demo stage, or lesson not started). |
+| Starting… | Permission / device setup in progress. |
+| Calibrating… | Grown-up settings → Listen for middle C. |
+| Listening | Ready. MIDI also names the plugged-in keyboard when it can. |
+| Heard C4 (etc.) | A note was just detected on that path. |
+| Error | Mic permission blocked, or Web MIDI missing / failed. |
 
 | Input | How it works | Limits |
 | --- | --- | --- |
 | **Web MIDI** | `navigator.requestMIDIAccess` — note-on events map 1:1 to piano keys. Best accuracy. | Safari on iPad / iOS generally has **no Web MIDI**. Use Chrome on a computer or Android, or a browser that implements the API. The page must be `localhost` or HTTPS. |
-| **Microphone** | [Pitchy](https://github.com/ianprime0509/pitchy) (YIN) on the Web Audio API. Play a real acoustic or digital piano into the mic. Calibrate with **Play middle C** so a slightly sharp/flat room piano still maps to C4. | Rooms are noisy. Soft notes, pedals, and overlapping tones confuse pitch detection. Headphones can leak. iOS will prompt for mic permission. This MVP prefers a clear, single note held for a moment over studio-grade DSP. |
+| **Microphone** | [Pitchy](https://github.com/ianprime0509/pitchy) (YIN) on the Web Audio API. Play a real acoustic or digital piano into the mic. Calibrate with **Listen for middle C** so a slightly sharp/flat room piano still maps to C4. | Rooms are noisy. Soft notes, pedals, and overlapping tones confuse pitch detection. Headphones can leak. iOS will prompt for mic permission. This MVP prefers a clear, single note held for a moment over studio-grade DSP. |
 | **On-screen keyboard** | Large C4–C5 keys, with the target key highlighted. Useful on a tablet while you set up, and for automated tests. | This is a fallback, not a replacement for a real keyboard. |
 
 Calibration stores an offset in **cents** from concert pitch (A4 = 440 Hz, middle C ≈ 261.63 Hz). MIDI does not use that offset.
 
-## Parental controls
+## Parental PIN
 
-- PIN gate for **Grown-up settings** and **Leave** (early lesson exit).
-- Multiple kid profiles on this device.
-- Optional session time limit (default 15 minutes). When it ends, practice pauses until a PIN adds time or sends the kid home.
-- Completing Lesson 1 may return home without a PIN.
-- No ads, IAP, social, or outbound store.
+The PIN never leaves this device.
+
+- Stored as a **random salt + PBKDF2-SHA-256** (100,000 iterations). Older unsalted hashes are still checked once, then upgraded on the next correct unlock.
+- After **5** wrong tries the pad **locks** (30s, then 1, 2, then 4 minutes). Failed attempts are saved, so refreshing the page does not reset the pause.
+- A correct PIN opens a **two-minute parent window**. Settings, profile switching, and Leave skip the pad during that window so a grown-up is not asked again and again. Kids cannot spam guesses while the pad is locked.
+- Switching kid profiles always requires that window or a fresh PIN.
+
+This is still a local 4-digit gate, not a password manager. It is meant to slow a child down, not to resist a determined adult with device access.
+
+## Session time
+
+The optional limit (default 15 minutes) runs **whenever a kid profile is active** — on the home screen and in Lesson 1, not only after Start Lesson 1. Starting a lesson does not reset the clock. When time is up, practice pauses until a PIN adds time or sends the kid home.
+
+## Offline / PWA
+
+`npm run build` emits a service worker that precaches the app shell, Lesson 1 code, icons, and **bundled** Nunito / Fraunces files (no Google Fonts network request). After one online visit, Lesson 1 can be opened offline from the home screen.
+
+Install: Chrome / Edge / Android “Install app”, or iPad Share → Add to Home Screen. Use `npm run preview` to try the production worker locally.
 
 ## Stack
 

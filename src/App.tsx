@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactElement } from "react";
-import { sessionExpired } from "./lib/session";
+import { isKidFacingScreen, sessionExpired, sessionShouldRun } from "./lib/session";
 import { TimeUpScreen } from "./screens/TimeUpScreen";
 import { CalibrateScreen } from "./screens/CalibrateScreen";
 import { HomeScreen } from "./screens/HomeScreen";
@@ -18,12 +18,14 @@ export function App() {
     return () => window.clearInterval(id);
   }, []);
 
+  const kidSession = sessionShouldRun(persist.activeKidId, persist.pinHash);
+  const kidFacing = isKidFacingScreen(screen);
   const limitMs = persist.sessionLimitMinutes * 60 * 1000;
   const timedOut =
-    screen === "lesson" && sessionExpired(sessionStartedAt, persist.sessionLimitMinutes, now);
+    kidFacing && sessionExpired(sessionStartedAt, persist.sessionLimitMinutes, now);
 
   const remaining =
-    sessionStartedAt && persist.sessionLimitMinutes > 0
+    kidSession && persist.sessionLimitMinutes > 0 && sessionStartedAt
       ? Math.max(0, limitMs - (now - sessionStartedAt))
       : null;
 
@@ -53,7 +55,7 @@ export function App() {
 
   return (
     <div className="app-shell" data-testid="app-shell">
-      {remaining != null && screen === "lesson" ? (
+      {remaining != null && kidFacing ? (
         <div className="session-chip" data-testid="session-remaining">
           {formatRemaining(remaining)}
         </div>
