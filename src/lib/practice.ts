@@ -2,10 +2,10 @@ import type { FeedbackKind } from "../types";
 
 export function classifyAttempt(
   playedMidi: number,
-  targetMidi: number,
+  targetMidi: number | null,
   hintVisible: boolean,
 ): Exclude<FeedbackKind, "idle"> {
-  if (playedMidi !== targetMidi) return "wrong";
+  if (targetMidi == null || playedMidi !== targetMidi) return "wrong";
   return hintVisible ? "correct-after-hint" : "correct";
 }
 

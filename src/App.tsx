@@ -54,7 +54,7 @@ export function App() {
   }
 
   return (
-    <div className="app-shell" data-testid="app-shell">
+    <div className="app-shell" data-testid="app-shell" data-theme={activeTheme(persist)}>
       {remaining != null && kidFacing ? (
         <div className="session-chip" data-testid="session-remaining">
           {formatRemaining(remaining)}
@@ -70,6 +70,11 @@ export function App() {
       ) : null}
     </div>
   );
+}
+
+function activeTheme(persist: { kids: { id: string; theme?: string }[]; activeKidId: string | null }): string {
+  const kid = persist.kids.find((item) => item.id === persist.activeKidId) ?? persist.kids[0];
+  return kid?.theme ?? "cream";
 }
 
 function formatRemaining(ms: number): string {

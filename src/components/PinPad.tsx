@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatLockRemaining, type PinResult } from "../lib/pin";
+import { formatLockRemaining, isValidPin, type PinResult } from "../lib/pin";
 import { useApp } from "../store/AppState";
 
 interface Props {
@@ -18,6 +18,10 @@ export function PinPad({ title, subtitle, onSubmit, onCancel, submitLabel = "Unl
   const [now, setNow] = useState(Date.now());
 
   const locked = persist.pinLockedUntil > now;
+  const expected = persist.pinLength || 0;
+  const maxLen = expected || 6;
+  const slots = expected || Math.max(4, digits.length);
+  const sentRef = useState(() => ({ current: "" }))[0];
 
   useEffect(() => {
     if (!locked) return;
@@ -42,23 +46,41 @@ export function PinPad({ title, subtitle, onSubmit, onCancel, submitLabel = "Unl
       setDigits((prev) => prev.slice(0, -1));
       return;
     }
-    setDigits((prev) => (prev.length >= 4 ? prev : prev + value));
+    setDigits((prev) => {
+      if (prev.length >= maxLen) return prev;
+      return prev + value;
+    });
   };
 
-  const submit = async () => {
-    if (locked) return;
-    if (digits.length !== 4) {
-      setError("Enter 4 digits.");
+  const submit = async (value = digits) => {
+    if (locked || busy) return;
+    if (sentRef.current === value) return;
+    if (expected && value.length !== expected) {
+      setError(`Enter the ${expected}-digit PIN.`);
       return;
     }
+    if (!isValidPin(value)) {
+      setError("Enter 4 to 6 digits.");
+      return;
+    }
+    sentRef.current = value;
     setBusy(true);
-    const result = await onSubmit(digits);
+    const result = await onSubmit(value);
     setBusy(false);
     if (!result.ok) {
+      sentRef.current = "";
       setError(result.message);
       setDigits("");
     }
   };
+
+  useEffect(() => {
+    if (expected && digits.length === expected && !busy && !locked) {
+      void submit(digits);
+    }
+    // Auto-submit once the stored length is reached.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [digits, expected]);
 
   return (
     <div className="pin-overlay" data-testid="pin-gate">
@@ -66,7 +88,7 @@ export function PinPad({ title, subtitle, onSubmit, onCancel, submitLabel = "Unl
         <h2>{title}</h2>
         {subtitle ? <p className="muted">{subtitle}</p> : null}
         <div className="pin-dots" aria-label="PIN progress">
-          {[0, 1, 2, 3].map((index) => (
+          {Array.from({ length: slots }, (_, index) => (
             <span key={index} className={digits.length > index ? "filled" : ""} />
           ))}
         </div>

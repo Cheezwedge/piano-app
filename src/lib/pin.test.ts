@@ -13,9 +13,11 @@ import {
 } from "./pin";
 
 describe("parent PIN", () => {
-  it("accepts only four digits", () => {
+  it("accepts 4 to 6 digits", () => {
     expect(isValidPin("1234")).toBe(true);
+    expect(isValidPin("123456")).toBe(true);
     expect(isValidPin("12")).toBe(false);
+    expect(isValidPin("1234567")).toBe(false);
     expect(isValidPin("abcd")).toBe(false);
   });
 
@@ -27,6 +29,14 @@ describe("parent PIN", () => {
     expect(first.pinHash).not.toBe(second.pinHash);
     expect(await verifyPin("2468", first)).toBe(true);
     expect(await verifyPin("0000", first)).toBe(false);
+  });
+
+  it("hashes 5 and 6 digit PINs", async () => {
+    const five = await createPinRecord("13579");
+    const six = await createPinRecord("246810");
+    expect(await verifyPin("13579", five)).toBe(true);
+    expect(await verifyPin("246810", six)).toBe(true);
+    expect(await verifyPin("1357", five)).toBe(false);
   });
 
   it("still verifies a legacy unsalted hash", async () => {

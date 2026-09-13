@@ -11,7 +11,7 @@ export function SetupPinScreen() {
 
   const save = async () => {
     if (!isValidPin(pin)) {
-      setError("Choose a 4-digit PIN.");
+      setError("Choose a 4 to 6 digit PIN.");
       return;
     }
     if (pin !== confirm) {
@@ -26,17 +26,17 @@ export function SetupPinScreen() {
     <main className="page narrow" data-testid="setup-pin-screen">
       <h1>Parent PIN</h1>
       <p className="muted">
-        Kids will need this for settings, switching profiles, or leaving a lesson early. After five
-        wrong tries the pad pauses.
+        Kids will need this for settings, switching profiles, or leaving a lesson early. Use 4, 5, or
+        6 digits. After five wrong tries the pad pauses.
       </p>
       <label>
         New PIN
         <input
           data-testid="pin-input"
           inputMode="numeric"
-          maxLength={4}
+          maxLength={6}
           value={pin}
-          onChange={(event) => setPinValue(event.target.value.replace(/\D/g, "").slice(0, 4))}
+          onChange={(event) => setPinValue(event.target.value.replace(/\D/g, "").slice(0, 6))}
         />
       </label>
       <label>
@@ -44,9 +44,9 @@ export function SetupPinScreen() {
         <input
           data-testid="pin-confirm"
           inputMode="numeric"
-          maxLength={4}
+          maxLength={6}
           value={confirm}
-          onChange={(event) => setConfirm(event.target.value.replace(/\D/g, "").slice(0, 4))}
+          onChange={(event) => setConfirm(event.target.value.replace(/\D/g, "").slice(0, 6))}
         />
       </label>
       {error ? <p className="error-text">{error}</p> : null}

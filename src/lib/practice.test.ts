@@ -16,4 +16,9 @@ describe("practice mode", () => {
     expect(classifyAttempt(65, 65, true)).toBe("correct-after-hint");
     expect(shouldAdvance("correct-after-hint")).toBe(true);
   });
+
+  it("treats any pitch during a rest as wrong", () => {
+    expect(classifyAttempt(60, null, false)).toBe("wrong");
+    expect(shouldAdvance("wrong")).toBe(false);
+  });
 });

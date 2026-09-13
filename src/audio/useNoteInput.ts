@@ -19,6 +19,7 @@ interface Options {
 export function useNoteInput({ enabled, calibrationCents, onNote }: Options) {
   const [mic, setMic] = useState<ListenChannel>(LISTEN_OFF);
   const [midi, setMidi] = useState<ListenChannel>(LISTEN_OFF);
+  const [retryTick, setRetryTick] = useState(0);
   const onNoteRef = useRef(onNote);
   onNoteRef.current = onNote;
   const flashRef = useRef<number>(0);
@@ -86,11 +87,15 @@ export function useNoteInput({ enabled, calibrationCents, onNote }: Options) {
       stopMic?.();
       stopMidi?.();
     };
-  }, [enabled, calibrationCents]);
+  }, [enabled, calibrationCents, retryTick]);
 
   const playOnScreen = (midiNote: number) => {
     onNoteRef.current({ midi: midiNote, source: "screen" });
   };
 
-  return { mic, midi, playOnScreen };
+  const retryMic = () => {
+    setRetryTick((tick) => tick + 1);
+  };
+
+  return { mic, midi, playOnScreen, retryMic };
 }

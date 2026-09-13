@@ -7,7 +7,7 @@ describe("Lesson 1 content", () => {
     const allowed = new Set<number>(LESSON1_MIDIS);
     for (const stage of LESSON_1.stages) {
       for (const note of stage.notes) {
-        expect(allowed.has(note.midi)).toBe(true);
+        expect(note.midi != null && allowed.has(note.midi)).toBe(true);
       }
     }
   });

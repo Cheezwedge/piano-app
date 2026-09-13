@@ -3,6 +3,7 @@ import {
   C4_HZ,
   C4_MIDI,
   centsFromMidi,
+  durationBeats,
   freqToMidi,
   isConfidentPitch,
   midiToFreq,
@@ -32,5 +33,15 @@ describe("note math", () => {
     expect(isConfidentPitch(C4_HZ, 0.4, C4_MIDI)).toBe(false);
     expect(isConfidentPitch(C4_HZ, 0.95, C4_MIDI)).toBe(true);
     expect(isConfidentPitch(midiToFreq(62), 0.95, C4_MIDI)).toBe(false);
+  });
+});
+
+describe("rhythm beats", () => {
+  it("maps note shapes to beat counts", () => {
+    expect(durationBeats("quarter")).toBe(1);
+    expect(durationBeats("half")).toBe(2);
+    expect(durationBeats("whole")).toBe(4);
+    expect(durationBeats("rest")).toBe(1);
+    expect(durationBeats(undefined)).toBe(1);
   });
 });

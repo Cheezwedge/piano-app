@@ -12,9 +12,9 @@ export function WelcomeScreen() {
         A quiet first piano lesson for kids at home. Real keys, a treble staff, and no ads.
       </p>
       <ul className="welcome-points">
-        <li>Lesson 1 reads C D E F G on the treble staff</li>
+        <li>A short course path: notes, neighbors, rhythm, then a light two-hand hello</li>
         <li>Practice waits for the correct note</li>
-        <li>Parents keep a PIN on settings and leaving early</li>
+        <li>Parents keep a PIN on settings, progress resets, and leaving early</li>
       </ul>
       <button
         type="button"

@@ -18,9 +18,12 @@ import {
   verifyPin,
   type PinResult,
 } from "../lib/pin";
+import { applyStageComplete, starsFromCounts } from "../lib/progress";
+import { COURSE_UNITS } from "../data/courses";
 import {
   AVATARS,
   DEFAULT_STATE,
+  EMPTY_KID_PROGRESS,
   type KidProfile,
   type PersistedState,
   type Screen,
@@ -41,8 +44,14 @@ interface AppContextValue {
   addKid: (name: string, avatar: string) => void;
   removeKid: (id: string) => void;
   setActiveKid: (id: string) => void;
+  activeUnitId: string;
+  setActiveUnitId: (id: string) => void;
+  completeUnit: (unitId: string, wrongs: number, scoredNotes: number) => ReturnType<typeof applyStageComplete> | null;
+  updateKid: (id: string, patch: Partial<KidProfile>) => void;
+  unlockPath: () => void;
+  resetKidProgress: (id: string) => void;
   markLesson1Complete: () => void;
-  updateSettings: (patch: Partial<Pick<PersistedState, "sessionLimitMinutes" | "showFingerNumbers" | "calibrationCents">>) => void;
+  updateSettings: (patch: Partial<Pick<PersistedState, "sessionLimitMinutes" | "showFingerNumbers" | "calibrationCents" | "pathUnlocked">>) => void;
   resetAll: () => void;
 }
 
@@ -60,6 +69,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
   const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
   const [pinUnlockedUntil, setPinUnlockedUntil] = useState(0);
+  const [activeUnitId, setActiveUnitId] = useState(COURSE_UNITS[0].id);
 
   const update = useCallback((recipe: (prev: PersistedState) => PersistedState) => {
     setPersist((prev) => persistNow(recipe(prev)));
@@ -76,6 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     update((prev) => ({
       ...prev,
       ...record,
+      pinLength: pin.length,
       pinFailedAttempts: 0,
       pinLockedUntil: 0,
     }));
@@ -106,6 +117,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           update((prev) => ({
             ...prev,
             ...record,
+            pinLength: prev.pinLength || pin.length,
             pinFailedAttempts: 0,
             pinLockedUntil: 0,
           }));
@@ -135,7 +147,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         name: trimmed.slice(0, 18),
         avatar: AVATARS.includes(avatar as (typeof AVATARS)[number]) ? avatar : AVATARS[0],
         createdAt: new Date().toISOString(),
-        lesson1Complete: false,
+        ...EMPTY_KID_PROGRESS,
       };
       update((prev) => ({
         ...prev,
@@ -177,8 +189,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   }, [update]);
 
+  const completeUnit = useCallback(
+    (unitId: string, wrongs: number, scoredNotes: number) => {
+      const current = persist.kids.find((kid) => kid.id === persist.activeKidId);
+      if (!current) return null;
+      const award = applyStageComplete(current, unitId, starsFromCounts(wrongs, scoredNotes));
+      update((prev) => ({
+        ...prev,
+        kids: prev.kids.map((kid) => (kid.id === current.id ? award.kid : kid)),
+      }));
+      return award;
+    },
+    [persist.activeKidId, persist.kids, update],
+  );
+
+  const updateKid = useCallback(
+    (id: string, patch: Partial<KidProfile>) => {
+      update((prev) => ({
+        ...prev,
+        kids: prev.kids.map((kid) => (kid.id === id ? { ...kid, ...patch } : kid)),
+      }));
+    },
+    [update],
+  );
+
+  const unlockPath = useCallback(() => {
+    update((prev) => ({ ...prev, pathUnlocked: true }));
+  }, [update]);
+
+  const resetKidProgress = useCallback(
+    (id: string) => {
+      update((prev) => ({
+        ...prev,
+        kids: prev.kids.map((kid) => (kid.id === id ? { ...kid, ...EMPTY_KID_PROGRESS } : kid)),
+      }));
+    },
+    [update],
+  );
+
   const updateSettings = useCallback(
-    (patch: Partial<Pick<PersistedState, "sessionLimitMinutes" | "showFingerNumbers" | "calibrationCents">>) => {
+    (patch: Partial<Pick<PersistedState, "sessionLimitMinutes" | "showFingerNumbers" | "calibrationCents" | "pathUnlocked">>) => {
       update((prev) => ({ ...prev, ...patch }));
     },
     [update],
@@ -207,6 +257,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addKid,
       removeKid,
       setActiveKid,
+      activeUnitId,
+      setActiveUnitId,
+      completeUnit,
+      updateKid,
+      unlockPath,
+      resetKidProgress,
       markLesson1Complete,
       updateSettings,
       resetAll,
@@ -223,6 +279,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addKid,
       removeKid,
       setActiveKid,
+      activeUnitId,
+      completeUnit,
+      updateKid,
+      unlockPath,
+      resetKidProgress,
       markLesson1Complete,
       updateSettings,
       resetAll,

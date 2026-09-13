@@ -1,20 +1,20 @@
 import { C4_MIDI } from "../audio/notes";
 import type { LessonNote, LessonStage } from "../types";
 
-function note(offset: number, name: string, finger: number): LessonNote {
-  return { midi: C4_MIDI + offset, name, finger };
+export function note(offset: number, name: string, finger: number, extra: Partial<LessonNote> = {}): LessonNote {
+  return { midi: C4_MIDI + offset, name, finger, duration: "quarter", hand: "right", ...extra };
 }
 
-const C = note(0, "C", 1);
-const D = note(2, "D", 2);
-const E = note(4, "E", 3);
-const F = note(5, "F", 4);
-const G = note(7, "G", 5);
+export const C = note(0, "C", 1);
+export const D = note(2, "D", 2);
+export const E = note(4, "E", 3);
+export const F = note(5, "F", 4);
+export const G = note(7, "G", 5);
 
 const FIVE_NOTES = [C, D, E, F, G];
 
 /** Original five-note walk written for Home Keys. Not a copyrighted tune. */
-const GARDEN_WALK = [C, D, E, D, E, F, E, D, C];
+export const GARDEN_WALK = [C, D, E, D, E, F, E, D, C];
 
 export const LESSON_1_STAGES: LessonStage[] = [
   {

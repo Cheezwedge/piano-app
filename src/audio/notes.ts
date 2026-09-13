@@ -45,3 +45,23 @@ export function isConfidentPitch(
 
 export const WHITE_KEYS_C4_TO_C5 = [60, 62, 64, 65, 67, 69, 71, 72] as const;
 export const BLACK_KEYS_C4_TO_C5 = [61, 63, 66, 68, 70] as const;
+export const WHITE_KEYS_C3_TO_C5 = [48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72] as const;
+export const BLACK_KEYS_C3_TO_C5 = [49, 51, 54, 56, 58, 61, 63, 66, 68, 70] as const;
+
+export function whiteKeyIndex(midi: number, whites: readonly number[]): number {
+  return whites.indexOf(midi);
+}
+
+export function blackKeyLeft(midi: number, whites: readonly number[]): string {
+  const leftWhite = midi - 1;
+  const index = whites.indexOf(leftWhite);
+  const slot = index >= 0 ? index + 0.72 : 0;
+  return `calc(${slot} * (100% / ${whites.length}))`;
+}
+
+export function durationBeats(duration: string | undefined): number {
+  if (duration === "half") return 2;
+  if (duration === "whole") return 4;
+  if (duration === "rest") return 1;
+  return 1;
+}

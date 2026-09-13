@@ -16,7 +16,7 @@ export interface PinRecord {
 }
 
 export function isValidPin(pin: string): boolean {
-  return /^\d{4}$/.test(pin);
+  return /^\d{4,6}$/.test(pin);
 }
 
 export function toHex(bytes: ArrayBuffer | Uint8Array): string {
@@ -82,12 +82,12 @@ async function sha256Hex(text: string): Promise<string> {
 }
 
 export async function legacyHashPin(pin: string): Promise<string> {
-  if (!isValidPin(pin)) throw new Error("PIN must be 4 digits");
+  if (!isValidPin(pin)) throw new Error("PIN must be 4 to 6 digits");
   return sha256Hex(LEGACY_PREFIX + pin);
 }
 
 export async function derivePinHash(pin: string, saltHex: string): Promise<string> {
-  if (!isValidPin(pin)) throw new Error("PIN must be 4 digits");
+  if (!isValidPin(pin)) throw new Error("PIN must be 4 to 6 digits");
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(pin),
