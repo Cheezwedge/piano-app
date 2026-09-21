@@ -44,6 +44,7 @@ describe("local persistence", () => {
           theme: "cream",
           sticker: null,
           badge: null,
+          unlockedSongs: [],
         },
       ],
     });
@@ -51,5 +52,7 @@ describe("local persistence", () => {
     expect(kid.stageStars["basics-five"]).toBe(2);
     expect(kid.xp).toBe(70);
     expect(kid.lesson1Complete).toBe(true);
+    expect(kid.unlockedSongs).toEqual([]);
+    expect(loadState().libraryUnlocked).toBe(false);
   });
 });

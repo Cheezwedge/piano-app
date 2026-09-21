@@ -13,6 +13,7 @@ export function WelcomeScreen() {
       </p>
       <ul className="welcome-points">
         <li>A short course path: notes, neighbors, rhythm, then a light two-hand hello</li>
+        <li>A song library of free-to-use classical and folk teaching pieces</li>
         <li>Practice waits for the correct note</li>
         <li>Parents keep a PIN on settings, progress resets, and leaving early</li>
       </ul>

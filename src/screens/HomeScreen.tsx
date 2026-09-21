@@ -3,7 +3,8 @@ import { ColorLegend } from "../components/ColorLegend";
 import { Logo } from "../components/Logo";
 import { PinPad } from "../components/PinPad";
 import { COURSE_UNITS, UNIT_ORDER } from "../data/courses";
-import { isUnitUnlocked, xpBar } from "../lib/progress";
+import { LIBRARY_SONGS } from "../data/songs";
+import { isSongUnlocked, isUnitUnlocked, xpBar } from "../lib/progress";
 import { REWARDS, type Reward } from "../lib/rewards";
 import { useActiveKid, useApp } from "../store/AppState";
 
@@ -36,6 +37,19 @@ export function HomeScreen() {
     setActiveUnitId(id);
     setScreen("lesson");
   };
+
+  const songUnlockOptions = {
+    stars,
+    pathUnlocked: persist.pathUnlocked,
+    libraryUnlocked: persist.libraryUnlocked,
+    parentUnlockedSongs: kid?.unlockedSongs ?? [],
+  };
+  const previewSongs = LIBRARY_SONGS.filter((song) =>
+    isSongUnlocked(song.unlockAfterUnitId, song.id, songUnlockOptions),
+  ).slice(0, 3);
+  const lockedSongCount = LIBRARY_SONGS.length - LIBRARY_SONGS.filter((song) =>
+    isSongUnlocked(song.unlockAfterUnitId, song.id, songUnlockOptions),
+  ).length;
 
   const nextUnit =
     COURSE_UNITS.find(
@@ -155,6 +169,44 @@ export function HomeScreen() {
             );
           })}
         </ol>
+      </section>
+
+      <section className="song-library-preview" data-testid="song-library-preview">
+        <h2>Song library</h2>
+        <p className="muted">
+          Free-to-use classical and folk tunes. Finish a course stage to open matching songs — no grown-up PIN
+          to play unlocked ones.
+        </p>
+        {previewSongs.length ? (
+          <ul className="preview-songs">
+            {previewSongs.map((song) => (
+              <li key={song.id}>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  disabled={!kid}
+                  data-testid={`home-play-${song.id}`}
+                  onClick={() => startUnit(song.id)}
+                >
+                  {song.title}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted" data-testid="library-preview-locked">
+            Finish Home Steps to open the first folk songs
+            {lockedSongCount ? ` (${LIBRARY_SONGS.length} waiting)` : ""}.
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn primary"
+          data-testid="open-library"
+          onClick={() => setScreen("library")}
+        >
+          Open song library
+        </button>
       </section>
 
       <section className="reward-shelf" data-testid="reward-shelf">
