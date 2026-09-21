@@ -49,9 +49,18 @@ interface AppContextValue {
   completeUnit: (unitId: string, wrongs: number, scoredNotes: number) => ReturnType<typeof applyStageComplete> | null;
   updateKid: (id: string, patch: Partial<KidProfile>) => void;
   unlockPath: () => void;
+  unlockLibrary: () => void;
+  unlockSong: (songId: string) => void;
   resetKidProgress: (id: string) => void;
   markLesson1Complete: () => void;
-  updateSettings: (patch: Partial<Pick<PersistedState, "sessionLimitMinutes" | "showFingerNumbers" | "calibrationCents" | "pathUnlocked">>) => void;
+  updateSettings: (
+    patch: Partial<
+      Pick<
+        PersistedState,
+        "sessionLimitMinutes" | "showFingerNumbers" | "calibrationCents" | "pathUnlocked" | "libraryUnlocked"
+      >
+    >,
+  ) => void;
   resetAll: () => void;
 }
 
@@ -217,6 +226,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     update((prev) => ({ ...prev, pathUnlocked: true }));
   }, [update]);
 
+  const unlockLibrary = useCallback(() => {
+    update((prev) => ({ ...prev, libraryUnlocked: true }));
+  }, [update]);
+
+  const unlockSong = useCallback(
+    (songId: string) => {
+      update((prev) => ({
+        ...prev,
+        kids: prev.kids.map((kid) => {
+          if (kid.id !== prev.activeKidId) return kid;
+          if (kid.unlockedSongs.includes(songId)) return kid;
+          return { ...kid, unlockedSongs: [...kid.unlockedSongs, songId] };
+        }),
+      }));
+    },
+    [update],
+  );
+
   const resetKidProgress = useCallback(
     (id: string) => {
       update((prev) => ({
@@ -228,7 +255,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const updateSettings = useCallback(
-    (patch: Partial<Pick<PersistedState, "sessionLimitMinutes" | "showFingerNumbers" | "calibrationCents" | "pathUnlocked">>) => {
+    (
+      patch: Partial<
+        Pick<
+          PersistedState,
+          "sessionLimitMinutes" | "showFingerNumbers" | "calibrationCents" | "pathUnlocked" | "libraryUnlocked"
+        >
+      >,
+    ) => {
       update((prev) => ({ ...prev, ...patch }));
     },
     [update],
@@ -262,6 +296,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       completeUnit,
       updateKid,
       unlockPath,
+      unlockLibrary,
+      unlockSong,
       resetKidProgress,
       markLesson1Complete,
       updateSettings,
@@ -283,6 +319,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       completeUnit,
       updateKid,
       unlockPath,
+      unlockLibrary,
+      unlockSong,
       resetKidProgress,
       markLesson1Complete,
       updateSettings,

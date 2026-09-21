@@ -9,9 +9,12 @@ export type Screen =
   | "setup-pin"
   | "setup-kid"
   | "home"
+  | "library"
   | "lesson"
   | "settings"
   | "calibrate";
+
+export type SongBand = "home-steps" | "neighbor-notes" | "steady-beats";
 
 export type InputSource = "mic" | "midi" | "screen";
 
@@ -46,6 +49,24 @@ export interface CourseUnit {
   stages: LessonStage[];
 }
 
+/** A free-to-use teaching song encoded as an original Home Keys note sequence. */
+export interface LibrarySong {
+  id: string;
+  title: string;
+  composer: string;
+  tradition: string;
+  /** Short kid-facing reason this melody may be used here. */
+  licenseNote: string;
+  blurb: string;
+  /** Course unit that must be finished (stars > 0) before this song unlocks. */
+  unlockAfterUnitId: string;
+  band: SongBand;
+  bandLabel: string;
+  keyboard: "treble" | "wide";
+  rhythm: boolean;
+  notes: LessonNote[];
+}
+
 export interface KidProfile {
   id: string;
   name: string;
@@ -60,6 +81,8 @@ export interface KidProfile {
   theme: ThemeId;
   sticker: string | null;
   badge: string | null;
+  /** Song ids a grown-up unlocked early with the PIN. */
+  unlockedSongs: string[];
 }
 
 export interface PersistedState {
@@ -73,6 +96,7 @@ export interface PersistedState {
   showFingerNumbers: boolean;
   calibrationCents: number;
   pathUnlocked: boolean;
+  libraryUnlocked: boolean;
   kids: KidProfile[];
   activeKidId: string | null;
 }
@@ -89,6 +113,7 @@ export const EMPTY_KID_PROGRESS = {
   theme: "cream" as ThemeId,
   sticker: null as string | null,
   badge: null as string | null,
+  unlockedSongs: [] as string[],
 };
 
 export const DEFAULT_STATE: PersistedState = {
@@ -102,6 +127,7 @@ export const DEFAULT_STATE: PersistedState = {
   showFingerNumbers: true,
   calibrationCents: 0,
   pathUnlocked: false,
+  libraryUnlocked: false,
   kids: [],
   activeKidId: null,
 };

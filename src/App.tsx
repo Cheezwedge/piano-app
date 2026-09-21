@@ -4,6 +4,7 @@ import { TimeUpScreen } from "./screens/TimeUpScreen";
 import { CalibrateScreen } from "./screens/CalibrateScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { LessonScreen } from "./screens/LessonScreen";
+import { LibraryScreen } from "./screens/LibraryScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { SetupKidScreen, SetupPinScreen } from "./screens/SetupScreen";
 import { WelcomeScreen } from "./screens/WelcomeScreen";
@@ -48,6 +49,9 @@ export function App() {
       break;
     case "lesson":
       body = <LessonScreen />;
+      break;
+    case "library":
+      body = <LibraryScreen />;
       break;
     default:
       body = <HomeScreen />;

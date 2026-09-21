@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ColorLegend } from "../components/ColorLegend";
 import { COURSE_UNITS } from "../data/courses";
+import { LIBRARY_SONGS } from "../data/songs";
 import { isValidPin } from "../lib/pin";
 import { levelFromXp } from "../lib/progress";
 import { useApp } from "../store/AppState";
@@ -16,6 +17,7 @@ export function SettingsScreen() {
     setPin,
     resetAll,
     unlockPath,
+    unlockLibrary,
     resetKidProgress,
   } = useApp();
   const [pin, setPinValue] = useState("");
@@ -110,7 +112,34 @@ export function SettingsScreen() {
       </section>
 
       <section>
-        <h2>Kid progress</h2>
+        <h2>Song library</h2>
+        <p className="muted">
+          Songs open when the matching course stage is finished. Unlock-all is for testing, or to skip the stage
+          gates. Kids still do not need the PIN to play an unlocked song.
+        </p>
+        <div className="choice-row">
+          <button
+            type="button"
+            className={persist.libraryUnlocked ? "chip selected" : "chip"}
+            data-testid="unlock-library"
+            onClick={unlockLibrary}
+          >
+            Unlock entire library
+          </button>
+          {persist.libraryUnlocked ? (
+            <button
+              type="button"
+              className="chip"
+              data-testid="lock-library"
+              onClick={() => updateSettings({ libraryUnlocked: false })}
+            >
+              Lock library again
+            </button>
+          ) : null}
+        </div>
+      </section>
+
+      <section>
         <p className="muted">Kids cannot reset stars or XP from their path. That stays here, behind the PIN.</p>
         <ul className="kid-list">
           {persist.kids.map((kid) => (
@@ -127,6 +156,13 @@ export function SettingsScreen() {
                   {COURSE_UNITS.map((unit) => {
                     const stars = kid.stageStars[unit.id] ?? 0;
                     return `${unit.title}: ${stars ? `${stars}★` : "—"}`;
+                  }).join(" · ")}
+                </p>
+                <p className="muted">
+                  Songs:{" "}
+                  {LIBRARY_SONGS.map((song) => {
+                    const stars = kid.stageStars[song.id] ?? 0;
+                    return `${song.title}: ${stars ? `${stars}★` : "—"}`;
                   }).join(" · ")}
                 </p>
               </div>

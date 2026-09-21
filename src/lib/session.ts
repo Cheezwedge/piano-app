@@ -10,7 +10,7 @@ export function sessionExpired(
 }
 
 export function isKidFacingScreen(screen: Screen): boolean {
-  return screen === "home" || screen === "lesson";
+  return screen === "home" || screen === "library" || screen === "lesson";
 }
 
 export function sessionShouldRun(activeKidId: string | null, pinHash: string): boolean {

@@ -705,7 +705,10 @@ input:not([type="checkbox"]) {
 .course-path,
 .reward-shelf,
 .continue-card,
-.celebrate-card {
+.celebrate-card,
+.song-library-preview,
+.library-intro,
+.library-legal {
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 20px;
@@ -866,6 +869,61 @@ input:not([type="checkbox"]) {
   cursor: not-allowed;
 }
 
+.preview-songs {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.song-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.song-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.song-card.locked {
+  opacity: 0.82;
+}
+
+.song-composer {
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 0.4em;
+}
+
+.song-license,
+.song-license-line {
+  font-size: 0.85rem;
+}
+
+.song-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.library-legal h2 {
+  margin-bottom: 0.4em;
+}
+
 .celebrate-card {
   animation: celebrate-pop 0.55s ease-out;
   max-width: 560px;
@@ -888,7 +946,8 @@ input:not([type="checkbox"]) {
 @media (max-width: 900px) {
   .info-grid,
   .lesson-stage,
-  .kid-passport {
+  .kid-passport,
+  .song-card {
     grid-template-columns: 1fr;
   }
 

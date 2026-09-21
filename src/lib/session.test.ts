@@ -15,6 +15,7 @@ describe("session time limit", () => {
   it("counts time on kid home and lesson, not only during a lesson", () => {
     expect(isKidFacingScreen("home")).toBe(true);
     expect(isKidFacingScreen("lesson")).toBe(true);
+    expect(isKidFacingScreen("library")).toBe(true);
     expect(isKidFacingScreen("settings")).toBe(false);
     expect(sessionShouldRun("kid-1", "hash")).toBe(true);
     expect(sessionShouldRun(null, "hash")).toBe(false);

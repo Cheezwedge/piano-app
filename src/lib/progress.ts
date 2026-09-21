@@ -53,8 +53,26 @@ export function isUnitUnlocked(
 ): boolean {
   if (unlockAll) return true;
   const index = unitOrder.indexOf(unitId);
-  if (index <= 0) return true;
+  if (index < 0) return false;
+  if (index === 0) return true;
   return (stars[unitOrder[index - 1]] ?? 0) > 0;
+}
+
+export interface SongUnlockOptions {
+  stars: Record<string, number>;
+  pathUnlocked: boolean;
+  libraryUnlocked: boolean;
+  parentUnlockedSongs: string[];
+}
+
+export function isSongUnlocked(
+  unlockAfterUnitId: string,
+  songId: string,
+  options: SongUnlockOptions,
+): boolean {
+  if (options.pathUnlocked || options.libraryUnlocked) return true;
+  if (options.parentUnlockedSongs.includes(songId)) return true;
+  return (options.stars[unlockAfterUnitId] ?? 0) > 0;
 }
 
 export interface StageAward {

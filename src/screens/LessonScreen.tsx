@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { durationBeats, midiToName } from "../audio/notes";
 import { playMidiNote, resumeAudio } from "../audio/synth";
 import { useNoteInput } from "../audio/useNoteInput";
@@ -7,9 +7,11 @@ import { ListeningStatus } from "../components/ListeningStatus";
 import { PianoKeyboard } from "../components/PianoKeyboard";
 import { PinPad } from "../components/PinPad";
 import { Staff } from "../components/Staff";
-import { UNIT_ORDER, unitById } from "../data/courses";
+import { UNIT_ORDER } from "../data/courses";
+import { playableById } from "../data/playable";
+import { songById } from "../data/songs";
 import { classifyAttempt, shouldAdvance } from "../lib/practice";
-import { isUnitUnlocked, type StageAward } from "../lib/progress";
+import { isSongUnlocked, isUnitUnlocked, type StageAward } from "../lib/progress";
 import { useActiveKid, useApp } from "../store/AppState";
 import type { FeedbackKind, LessonNote, LessonStage } from "../types";
 
@@ -31,7 +33,9 @@ export function LessonScreen() {
     completeUnit,
   } = useApp();
   const kid = useActiveKid();
-  const unit = unitById(activeUnitId);
+  const unit = useMemo(() => playableById(activeUnitId), [activeUnitId]);
+  const fromLibrary = unit.courseId === "library";
+  const homeScreen = fromLibrary ? "library" : "home";
   const [stageIndex, setStageIndex] = useState(0);
   const [noteIndex, setNoteIndex] = useState(0);
   const [feedback, setFeedback] = useState<FeedbackKind>("idle");
@@ -54,16 +58,18 @@ export function LessonScreen() {
   const stage = unit.stages[Math.min(stageIndex, unit.stages.length - 1)];
   const current = stage.notes[Math.min(noteIndex, stage.notes.length - 1)];
   const isDemo = !complete && stage.kind === "demo";
-  const unlocked = isUnitUnlocked(
-    unit.id,
-    UNIT_ORDER,
-    kid?.stageStars ?? {},
-    persist.pathUnlocked,
-  );
+  const unlocked = fromLibrary
+    ? isSongUnlocked(songById(unit.id)?.unlockAfterUnitId ?? "", unit.id, {
+        stars: kid?.stageStars ?? {},
+        pathUnlocked: persist.pathUnlocked,
+        libraryUnlocked: persist.libraryUnlocked,
+        parentUnlockedSongs: kid?.unlockedSongs ?? [],
+      })
+    : isUnitUnlocked(unit.id, UNIT_ORDER, kid?.stageStars ?? {}, persist.pathUnlocked);
 
   useEffect(() => {
-    if (!unlocked) setScreen("home");
-  }, [unlocked, setScreen]);
+    if (!unlocked) setScreen(fromLibrary ? "library" : "home");
+  }, [unlocked, fromLibrary, setScreen]);
 
   useEffect(() => {
     if (stageIndex >= unit.stages.length) return;
@@ -77,7 +83,7 @@ export function LessonScreen() {
     setHolding(false);
     lockedRef.current = false;
     setRestNonce((value) => value + 1);
-  }, [stageIndex, unit]);
+  }, [stageIndex, unit.id]);
 
   useEffect(() => {
     if (stage.kind !== "melody" || hintVisible) return;
@@ -131,7 +137,7 @@ export function LessonScreen() {
     return () => window.clearTimeout(timer);
     // restNonce restarts the quiet wait after a sound during a rest.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDemo, complete, unit, stageIndex, noteIndex, restNonce]);
+  }, [isDemo, complete, unit.id, stageIndex, noteIndex, restNonce]);
 
   const handleIncoming = (midi: number, source: string) => {
     if (isDemo || lockedRef.current) return;
@@ -195,22 +201,23 @@ export function LessonScreen() {
           award={award}
           unitTitle={unit.title}
           kidName={kid?.name ?? "friend"}
-          onDone={() => setScreen("home")}
+          onDone={() => setScreen(homeScreen)}
+          doneLabel={fromLibrary ? "Back to songs" : "Back to the path"}
         />
       );
     }
     return (
       <main className="page lesson done" data-testid="lesson-complete">
         <h1>Nice playing, {kid?.name ?? "friend"}.</h1>
-        <button type="button" className="btn primary xl" onClick={() => setScreen("home")}>
-          Back to the path
+        <button type="button" className="btn primary xl" onClick={() => setScreen(homeScreen)}>
+          {fromLibrary ? "Back to songs" : "Back to the path"}
         </button>
       </main>
     );
   }
 
   return (
-    <main className="page lesson" data-testid="lesson-screen">
+    <main className="page lesson" data-testid="lesson-screen" data-unit-id={unit.id}>
       <header className="lesson-bar">
         <div>
           <p className="eyebrow">{unit.title} · {stage.title}</p>
@@ -226,7 +233,7 @@ export function LessonScreen() {
           className="btn ghost"
           data-testid="leave-lesson"
           onClick={() => {
-            if (isParentUnlocked()) setScreen("home");
+            if (isParentUnlocked()) setScreen(homeScreen);
             else setLeaveOpen(true);
           }}
         >
@@ -235,6 +242,11 @@ export function LessonScreen() {
       </header>
 
       <p className="stage-blurb">{stage.blurb}</p>
+      {fromLibrary && songById(unit.id) ? (
+        <p className="muted song-license-line" data-testid="song-license-line">
+          {songById(unit.id)?.licenseNote}
+        </p>
+      ) : null}
 
       <section className="lesson-stage">
         <Staff note={current} feedback={feedback} showFinger={persist.showFingerNumbers} />
@@ -317,13 +329,13 @@ export function LessonScreen() {
 
       {leaveOpen ? (
         <PinPad
-          title="Leave lesson?"
+          title={fromLibrary ? "Leave song?" : "Leave lesson?"}
           subtitle="A grown-up PIN is needed to exit before you finish."
           submitLabel="Leave"
           onCancel={() => setLeaveOpen(false)}
           onSubmit={async (pin) => {
             const result = await checkPin(pin);
-            if (result.ok) setScreen("home");
+            if (result.ok) setScreen(homeScreen);
             return result;
           }}
         />

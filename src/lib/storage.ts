@@ -29,6 +29,7 @@ export function migrateKid(raw: Partial<KidProfile>): KidProfile {
     badge: raw.badge ?? null,
     streakDays: raw.streakDays ?? 0,
     lastPracticeDate: raw.lastPracticeDate ?? null,
+    unlockedSongs: Array.isArray(raw.unlockedSongs) ? raw.unlockedSongs.filter((id) => typeof id === "string") : [],
   };
 }
 

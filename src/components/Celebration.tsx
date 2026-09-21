@@ -6,9 +6,10 @@ interface Props {
   unitTitle: string;
   kidName: string;
   onDone: () => void;
+  doneLabel?: string;
 }
 
-export function Celebration({ award, unitTitle, kidName, onDone }: Props) {
+export function Celebration({ award, unitTitle, kidName, onDone, doneLabel = "Back to the path" }: Props) {
   const fresh = REWARDS.filter((reward) => award.newRewards.includes(reward.id));
 
   return (
@@ -34,7 +35,7 @@ export function Celebration({ award, unitTitle, kidName, onDone }: Props) {
         ) : null}
         <p className="muted">These are just looks — practice is never locked behind a timer or a shop.</p>
         <button type="button" className="btn primary xl" onClick={onDone}>
-          Back to the path
+          {doneLabel}
         </button>
       </div>
     </main>
