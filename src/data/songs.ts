@@ -237,7 +237,7 @@ export function songToUnit(song: LibrarySong): CourseUnit {
       {
         id: "melody",
         kind: "melody",
-        title: song.title,
+        title: "Play the song",
         blurb: "Play each matching key. Hints stay hidden until you ask — or after a short wait.",
         notes: song.notes,
       },

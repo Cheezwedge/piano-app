@@ -62,6 +62,10 @@ describe("song library catalog", () => {
     }
   });
 
+  it("returns a stable playable object so practice does not reset on each key", () => {
+    expect(playableById("song-au-clair")).toBe(playableById("song-au-clair"));
+  });
+
   it("includes the suggested starter set (simplified)", () => {
     const titles = LIBRARY_SONGS.map((song) => song.title);
     expect(titles).toEqual(

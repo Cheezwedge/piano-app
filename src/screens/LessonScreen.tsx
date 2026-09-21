@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { durationBeats, midiToName } from "../audio/notes";
 import { playMidiNote, resumeAudio } from "../audio/synth";
 import { useNoteInput } from "../audio/useNoteInput";
@@ -33,7 +33,7 @@ export function LessonScreen() {
     completeUnit,
   } = useApp();
   const kid = useActiveKid();
-  const unit = playableById(activeUnitId);
+  const unit = useMemo(() => playableById(activeUnitId), [activeUnitId]);
   const fromLibrary = unit.courseId === "library";
   const homeScreen = fromLibrary ? "library" : "home";
   const [stageIndex, setStageIndex] = useState(0);
@@ -83,7 +83,7 @@ export function LessonScreen() {
     setHolding(false);
     lockedRef.current = false;
     setRestNonce((value) => value + 1);
-  }, [stageIndex, unit]);
+  }, [stageIndex, unit.id]);
 
   useEffect(() => {
     if (stage.kind !== "melody" || hintVisible) return;
@@ -137,7 +137,7 @@ export function LessonScreen() {
     return () => window.clearTimeout(timer);
     // restNonce restarts the quiet wait after a sound during a rest.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDemo, complete, unit, stageIndex, noteIndex, restNonce]);
+  }, [isDemo, complete, unit.id, stageIndex, noteIndex, restNonce]);
 
   const handleIncoming = (midi: number, source: string) => {
     if (isDemo || lockedRef.current) return;
