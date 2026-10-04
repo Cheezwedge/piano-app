@@ -70,7 +70,7 @@ export function endAllHeldTonesExcept(keepMidi: number | null): void {
   }
 }
 
-export function playMidiNote(midi: number, duration = 0.55, when = 0): void {
+export function playMidiNote(midi: number, duration = 0.55, when = 0, peak = 0.22): void {
   const ctx = getAudioContext();
   const start = Math.max(ctx.currentTime, ctx.currentTime + when);
   const freq = midiToFreq(midi);
@@ -85,7 +85,7 @@ export function playMidiNote(midi: number, duration = 0.55, when = 0): void {
 
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(0.22, start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), start + 0.02);
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
 
   oscillator.connect(filter);

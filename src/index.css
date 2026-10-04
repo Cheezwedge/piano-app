@@ -449,6 +449,32 @@ input:not([type="checkbox"]) {
   line-height: 1.15;
 }
 
+.dynamic-cue {
+  margin: 4px 0 8px;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dynamic-cue[data-dynamic="soft"] {
+  color: var(--teal);
+}
+
+.dynamic-cue[data-dynamic="loud"] {
+  color: var(--ink);
+}
+
+.dynamic-choice {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dynamic-choice button[aria-pressed="true"] {
+  outline: 3px solid var(--teal);
+  background: #e7f4ee;
+}
+
 .prompt-kicker {
   text-transform: uppercase;
   letter-spacing: 0.08em;

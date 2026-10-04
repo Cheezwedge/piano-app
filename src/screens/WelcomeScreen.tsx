@@ -12,7 +12,7 @@ export function WelcomeScreen() {
         A quiet first piano lesson for kids at home. Real keys, a treble staff, and no ads.
       </p>
       <ul className="welcome-points">
-        <li>A short course path: notes, neighbors, reading the staff, the bass clef, rhythm, a two-hand hello, then both hands at once</li>
+        <li>A short course path: notes, neighbors, reading the staff, the bass clef, rhythm, a two-hand hello, both hands at once, then soft and loud</li>
         <li>A song library of free-to-use classical and folk teaching pieces</li>
         <li>Practice waits for the correct note</li>
         <li>Parents keep a PIN on settings, progress resets, and leaving early</li>

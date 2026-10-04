@@ -10,6 +10,7 @@ import { Staff } from "../components/Staff";
 import { UNIT_ORDER } from "../data/courses";
 import { playableById } from "../data/playable";
 import { songById } from "../data/songs";
+import { dynamicFromVelocity, gainForDynamic, judgeDynamic, velocityForScreen, type Dynamic } from "../lib/dynamics";
 import { classifyAttempt, shouldAdvance } from "../lib/practice";
 import { hiddenReadingKicker, initialHintVisible, showReadingAnswer } from "../lib/reading";
 import {
@@ -64,6 +65,8 @@ export function LessonScreen() {
   const [holding, setHolding] = useState(false);
   const [holdReady, setHoldReady] = useState(false);
   const [shortHold, setShortHold] = useState(false);
+  const [dynamicMiss, setDynamicMiss] = useState<Dynamic | null>(null);
+  const [chosenDynamic, setChosenDynamic] = useState<Dynamic | null>(null);
   const [togetherPhase, setTogetherPhase] = useState<TogetherPhase | null>(null);
   const [restNonce, setRestNonce] = useState(0);
   const [award, setAward] = useState<StageAward | null>(null);
@@ -120,6 +123,8 @@ export function LessonScreen() {
     setHolding(false);
     setHoldReady(false);
     setShortHold(false);
+    setDynamicMiss(null);
+    setChosenDynamic(null);
     holdRef.current = null;
     togetherRef.current = emptyTogether();
     setTogetherPhase(null);
@@ -156,6 +161,8 @@ export function LessonScreen() {
     setHolding(false);
     setHoldReady(false);
     setShortHold(false);
+    setDynamicMiss(null);
+    setChosenDynamic(null);
     const upcoming = nextNote < stageNow.notes.length ? stageNow.notes[nextNote] : undefined;
     const carried = carryTogetherBass(togetherRef.current, upcoming?.together?.midi ?? null);
     togetherRef.current = carried;
@@ -210,7 +217,7 @@ export function LessonScreen() {
     }, ADVANCE_MS);
   };
 
-  const handleNoteOn = (midi: number, source: string) => {
+  const handleNoteOn = (midi: number, source: string, velocity?: number) => {
     if (isDemo || lockedRef.current) return;
     const target = unit.stages[stageIndexRef.current]?.notes[noteIndexRef.current];
     if (!target) return;
@@ -276,17 +283,37 @@ export function LessonScreen() {
     if (isRest(target)) {
       playMidiNote(midi, 0.35);
       wrongsRef.current += 1;
+      setDynamicMiss(null);
       setFeedback("wrong");
       setShortHold(false);
       setRestNonce((value) => value + 1);
       return;
     }
 
+    const playedDynamic = velocity == null ? null : dynamicFromVelocity(velocity);
+    const dynamicPeak = target.dynamic ? gainForDynamic(playedDynamic) : undefined;
+    if (
+      target.dynamic &&
+      midi === target.midi &&
+      judgeDynamic(target.dynamic, playedDynamic) === "wrong-dynamic"
+    ) {
+      playMidiNote(midi, 0.35, 0, dynamicPeak);
+      wrongsRef.current += 1;
+      setShortHold(false);
+      setHolding(false);
+      setHoldReady(false);
+      holdRef.current = null;
+      setDynamicMiss(target.dynamic);
+      setFeedback("wrong");
+      return;
+    }
+
     if (!noteNeedsHold(unit.rhythm, target)) {
-      playMidiNote(midi, 0.35);
+      playMidiNote(midi, 0.35, 0, dynamicPeak);
       const kind = classifyAttempt(midi, target.midi, hintRef.current);
       setFeedback(kind);
       setShortHold(false);
+      setDynamicMiss(null);
       if (!shouldAdvance(kind)) {
         wrongsRef.current += 1;
         return;
@@ -311,6 +338,7 @@ export function LessonScreen() {
       endAllHeldTones();
       playMidiNote(midi, 0.35);
       wrongsRef.current += 1;
+      setDynamicMiss(null);
       setFeedback("wrong");
       return;
     }
@@ -410,7 +438,7 @@ export function LessonScreen() {
   const { mic, midi, retryMic } = useNoteInput({
     enabled: !isDemo && !complete,
     calibrationCents: persist.calibrationCents,
-    onNote: (note) => handleNoteOn(note.midi, note.source),
+    onNote: (note) => handleNoteOn(note.midi, note.source, note.velocity),
     onRelease: (note) => handleNoteOff(note.midi, note.source, note.at),
   });
 
@@ -436,7 +464,9 @@ export function LessonScreen() {
         beginHeldTone(item.together.midi);
         bassSounding = item.together.midi;
       }
-      if (item.midi != null && item.duration !== "rest") playMidiNote(item.midi, 0.6);
+      if (item.midi != null && item.duration !== "rest") {
+        playMidiNote(item.midi, 0.6, 0, item.dynamic ? gainForDynamic(item.dynamic) : undefined);
+      }
       await wait(durationBeats(item.duration) * 720);
     }
     endAllHeldTones();
@@ -552,7 +582,35 @@ export function LessonScreen() {
             shortHold={shortHold}
             answerVisible={answerVisible}
             togetherPhase={shownTogetherPhase}
+            dynamicMiss={dynamicMiss}
           />
+          {current.dynamic ? (
+            <p className="dynamic-cue" data-testid="dynamic-cue" data-dynamic={current.dynamic}>
+              {current.dynamic === "soft" ? "Soft" : "Loud"}
+            </p>
+          ) : null}
+          {current.dynamic && !isDemo ? (
+            <div className="dynamic-choice" role="group" aria-label="How loud to play">
+              <button
+                type="button"
+                className="btn ghost"
+                data-testid="choose-soft"
+                aria-pressed={chosenDynamic === "soft"}
+                onClick={() => setChosenDynamic("soft")}
+              >
+                Soft
+              </button>
+              <button
+                type="button"
+                className="btn ghost"
+                data-testid="choose-loud"
+                aria-pressed={chosenDynamic === "loud"}
+                onClick={() => setChosenDynamic("loud")}
+              >
+                Loud
+              </button>
+            </div>
+          ) : null}
           {isDemo ? (
             <p className="status-line">Demo is playing through the speakers. Listening starts when you are ready.</p>
           ) : (
@@ -572,12 +630,13 @@ export function LessonScreen() {
         feedback={feedback}
         range={unit.keyboard}
         onPlay={(midiNote) => {
+          const screenVelocity = current.dynamic && chosenDynamic ? velocityForScreen(chosenDynamic) : undefined;
           if (isDemo) {
-            playMidiNote(midiNote, 0.3);
+            playMidiNote(midiNote, 0.3, 0, current.dynamic ? gainForDynamic(current.dynamic) : undefined);
             setLastPlayed(midiNote);
             return;
           }
-          handleNoteOn(midiNote, "screen");
+          handleNoteOn(midiNote, "screen", screenVelocity);
         }}
         onRelease={(midiNote) => {
           if (isDemo) return;
@@ -683,6 +742,7 @@ function FeedbackBanner({
   shortHold,
   answerVisible,
   togetherPhase,
+  dynamicMiss,
 }: {
   feedback: FeedbackKind;
   lastPlayed: number | null;
@@ -692,8 +752,16 @@ function FeedbackBanner({
   shortHold: boolean;
   answerVisible: boolean;
   togetherPhase: TogetherPhase | null;
+  dynamicMiss: Dynamic | null;
 }) {
   const played = lastPlayed == null ? "" : midiToName(lastPlayed);
+  if (feedback === "wrong" && dynamicMiss) {
+    return (
+      <p className="banner wrong" data-testid="feedback-wrong">
+        Try again · play {dynamicMiss}.
+      </p>
+    );
+  }
   if (feedback === "wrong" && rest) {
     return <p className="banner wrong" data-testid="feedback-wrong">That was a rest. Stay quiet{played ? ` · heard ${played}` : ""}.</p>;
   }

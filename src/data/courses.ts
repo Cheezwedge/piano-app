@@ -57,6 +57,14 @@ function heldBass(melody: LessonNote, bass: LessonNote): LessonNote {
 
 const STILL_STEPS = [heldBass(C, C3), heldBass(E, C3), heldBass(G, C3), heldBass(E, C3)];
 
+/** Quiet Step — original. Same white keys, right hand only, soft then loud. */
+function marked(source: LessonNote, dynamic: "soft" | "loud"): LessonNote {
+  return { ...source, dynamic };
+}
+
+const HEAR_SOFT_LOUD = [marked(C, "soft"), marked(C, "loud"), marked(E, "soft"), marked(G, "loud")];
+const QUIET_STEP = [marked(C, "soft"), marked(D, "loud"), marked(E, "soft"), marked(C, "loud")];
+
 /** Steps down from the bass F line to low C and back. Each move is a neighbor. */
 const BASS_STEPS = [F3, G3, F3, E3, D3, C3, D3, E3, F3];
 
@@ -265,6 +273,38 @@ export const COURSE_UNITS: CourseUnit[] = [
         title: "Still Steps",
         blurb: "An original pattern. Low C stays in the left hand. The right hand walks C E G E. One hand alone does not count.",
         notes: STILL_STEPS,
+      },
+    ],
+  },
+  {
+    id: "soft-loud",
+    courseId: "dynamics",
+    title: "Soft and Loud",
+    subtitle: "Right hand only",
+    blurb: "Hear a quiet note and a strong note. Soft stays soft. Loud stays loud.",
+    keyboard: "treble",
+    rhythm: false,
+    stages: [
+      {
+        id: "demo",
+        kind: "demo",
+        title: "Hear the difference",
+        blurb: "The same key can be quiet or strong. Listen. Soft is a small sound. Loud is a big sound.",
+        notes: HEAR_SOFT_LOUD,
+      },
+      {
+        id: "guided",
+        kind: "guided",
+        title: "Choose, then play",
+        blurb: "Tap Soft or Loud, then play the glowing key. You hear that sound. A loud sound does not count for a soft note.",
+        notes: HEAR_SOFT_LOUD,
+      },
+      {
+        id: "melody",
+        kind: "melody",
+        title: "Quiet Step",
+        blurb: "An original right-hand walk. Play each note soft or loud, the way it says. The other loudness does not pass.",
+        notes: QUIET_STEP,
       },
     ],
   },

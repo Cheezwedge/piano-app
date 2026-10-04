@@ -22,6 +22,8 @@ export type NoteDuration = "quarter" | "half" | "whole" | "rest";
 
 export type Hand = "right" | "left";
 
+export type Dynamic = "soft" | "loud";
+
 /** The other hand's note, sounding at the same time as the main note. */
 export interface TogetherPart {
   midi: number;
@@ -39,6 +41,8 @@ export interface LessonNote {
   hand?: Hand;
   /** When set, this pitch and `together` must be down at the same time. */
   together?: TogetherPart;
+  /** Soft and loud are heard. A mismatch does not pass. */
+  dynamic?: Dynamic;
 }
 
 export interface LessonStage {

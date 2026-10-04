@@ -10,6 +10,8 @@ export interface IncomingNote {
   source: "mic" | "midi" | "screen";
   /** When the attack or release happened. Omit to use the clock in the handler. */
   at?: number;
+  /** MIDI note-on velocity. On-screen keys omit this and choose soft or loud themselves. */
+  velocity?: number;
 }
 
 interface Options {
@@ -76,7 +78,7 @@ export function useNoteInput({ enabled, calibrationCents, onNote, onRelease }: O
         stopMidi = await startMidiWatch({
           onNote: (hit) => {
             flash("midi", hit.midi);
-            onNoteRef.current({ midi: hit.midi, source: "midi", at: hit.at });
+            onNoteRef.current({ midi: hit.midi, source: "midi", at: hit.at, velocity: hit.velocity });
           },
           onRelease: (hit) => {
             onReleaseRef.current?.({ midi: hit.midi, source: "midi", at: hit.at });
