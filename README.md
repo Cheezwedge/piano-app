@@ -2,7 +2,7 @@
 
 A tablet-first piano primer for kids. Home Keys is an original product. It is inspired by the *idea* of guided piano practice (listen, see the staff, play the matching key) and does **not** copy Simply Piano — or any other commercial app — assets, branding, songs, lesson scripts, UI chrome, or course content.
 
-Kids follow a short **course path** — notes, neighbors, rhythm, then a light two-hand hello. After those early stages they can open a **song library** of free-to-use classical and folk teaching pieces. Each stage waits for the matching key. Parents keep a PIN on settings, profile switching, progress resets, and early exit. There are no ads, purchases, social accounts, or store links.
+Kids follow a short **course path** — notes, neighbors, reading the staff, the bass clef, rhythm, then a light two-hand hello. After those early stages they can open a **song library** of free-to-use classical and folk teaching pieces. Each stage waits for the matching key. Parents keep a PIN on settings, profile switching, progress resets, and early exit. There are no ads, purchases, social accounts, or store links.
 
 ## Run locally
 
@@ -39,12 +39,15 @@ Original Home Keys material only. No licensed songs, Disney/pop tunes, or lookal
 | 1 | **Home Steps** | Treble **C D E F G**, wait-for-correct | **Garden Walk** — C D E D E F E D C |
 | 2 | **Neighbor Notes** | A, B, and high C in C major position | **Porch Light** |
 | 3 | **Read the Staff** | Middle C and the G on the second line, then steps and skips. White keys, C to C | **Skip Home** |
-| 4 | **Steady Beats** | Quarter, half, whole, and rest. Hold the key for the full value, then let go | **Quiet Clock** |
-| 5 | **Two Hands Hello** | Sequential left-hand C and G (open fifth), then a right-hand wave | **Low Door** |
+| 4 | **Bass Clef** | Left-hand F on the fourth line, then a few white keys around it. The right hand stays quiet | **Fourth Line** |
+| 5 | **Steady Beats** | Quarter, half, whole, and rest. Hold the key for the full value, then let go | **Quiet Clock** |
+| 6 | **Two Hands Hello** | Sequential left-hand C and G (open fifth), then a right-hand wave | **Low Door** |
 
 Each stage: a short tip / demo → guided practice (hints + wait) → the melody. The next stage unlocks only after the prior one is finished. A grown-up can **Unlock entire path** in settings (behind the PIN) for testing.
 
 **Read the Staff** opens after Neighbor Notes. The demo names two landmarks: middle C on the ledger line under the staff, and G on the second line. In **Steps** and **Skip Home** the key does not glow and the letter is hidden. The child reads the notehead and plays that white key. **Show hint** reveals the letter, the finger number, and the key. Practice still waits for the right note. This lesson uses only the white keys from middle C to high C. Finger numbers are the same as the rest of the path. Steady Beats still requires a full hold when a note has a length.
+
+**Bass Clef** opens after Read the Staff. The demo names left-hand F on the fourth line of the bass staff. The two dots of the bass clef sit around that line. In **Notes around F** and **Fourth Line** the letter stays hidden and no key glows until **Show hint**. Only the left hand plays: C, D, E, F, and G below middle C. A right-hand key is a miss and the lesson stays. The right hand does not play in this unit. This is not hands together.
 
 **Steady Beats** is the rhythm lesson. A right pitch counts only after it is held for the whole note and then released. A quarter is one count, a half is two, and a whole is four (about 0.7 seconds per count). Letting go early stays on that note and shows the same coral “try again” as a wrong key. The lesson waits until the pitch is right and the hold is long enough. Rests are still one quiet count. There is no metronome.
 

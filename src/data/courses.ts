@@ -6,6 +6,9 @@ const B = note(11, "B", 4);
 const C5 = note(12, "C", 5);
 
 const C3: LessonNote = { midi: 48, name: "C", finger: 5, duration: "quarter", hand: "left" };
+const D3: LessonNote = { midi: 50, name: "D", finger: 4, duration: "quarter", hand: "left" };
+const E3: LessonNote = { midi: 52, name: "E", finger: 3, duration: "quarter", hand: "left" };
+const F3: LessonNote = { midi: 53, name: "F", finger: 2, duration: "quarter", hand: "left" };
 const G3: LessonNote = { midi: 55, name: "G", finger: 1, duration: "quarter", hand: "left" };
 
 function withDuration(source: LessonNote, duration: LessonNote["duration"]): LessonNote {
@@ -37,6 +40,12 @@ const QUIET_CLOCK = [
 
 /** Low Door — original two-hand hello. Sequential, not a copyrighted bass line. */
 const LOW_DOOR = [C3, G3, C, E, G, E, C, C3];
+
+/** Steps down from the bass F line to low C and back. Each move is a neighbor. */
+const BASS_STEPS = [F3, G3, F3, E3, D3, C3, D3, E3, F3];
+
+/** Fourth Line — original left-hand walk. Steps and a few skips around bass F. */
+const FOURTH_LINE = [F3, G3, E3, D3, C3, E3, F3];
 
 export const COURSE_UNITS: CourseUnit[] = [
   {
@@ -111,6 +120,39 @@ export const COURSE_UNITS: CourseUnit[] = [
         title: "Skip Home",
         blurb: "A skip jumps over one note, from a line to the next line or a space to the next space. An original Home Keys tune.",
         notes: SKIP_HOME,
+      },
+    ],
+  },
+  {
+    id: "bass-clef",
+    courseId: "bass",
+    title: "Bass Clef",
+    subtitle: "Left-hand F",
+    blurb: "Find the F on the fourth line of the bass staff, then a few white keys around it. Left hand only.",
+    keyboard: "wide",
+    rhythm: false,
+    reading: true,
+    stages: [
+      {
+        id: "demo",
+        kind: "demo",
+        title: "The F line",
+        blurb: "The bass clef's two dots sit around the fourth line. That line is F for the left hand. The right hand stays quiet.",
+        notes: [F3, G3, F3, E3, F3],
+      },
+      {
+        id: "guided",
+        kind: "guided",
+        title: "Notes around F",
+        blurb: "These notes step away from F: G above, then E, D, and low C below. The key stays dark. Read the bass staff. Show hint if you need the letter. Play with the left hand.",
+        notes: BASS_STEPS,
+      },
+      {
+        id: "melody",
+        kind: "melody",
+        title: "Fourth Line",
+        blurb: "An original left-hand walk. It starts on the F line, visits the neighbors, and steps down to low C. The right hand does not play.",
+        notes: FOURTH_LINE,
       },
     ],
   },

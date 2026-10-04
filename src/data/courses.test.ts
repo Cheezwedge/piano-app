@@ -11,11 +11,12 @@ describe("course path", () => {
     expect(LESSON_1.stages[2].title).toBe("Garden Walk");
   });
 
-  it("uses original titles and five unlockable units", () => {
+  it("uses original titles and six unlockable units", () => {
     expect(COURSE_UNITS.map((unit) => unit.id)).toEqual([
       "basics-five",
       "neighbors-abc",
       "staff-reading",
+      "bass-clef",
       "rhythm-beats",
       "twohands-hello",
     ]);

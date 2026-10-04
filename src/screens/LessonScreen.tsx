@@ -11,7 +11,7 @@ import { UNIT_ORDER } from "../data/courses";
 import { playableById } from "../data/playable";
 import { songById } from "../data/songs";
 import { classifyAttempt, shouldAdvance } from "../lib/practice";
-import { initialHintVisible, showReadingAnswer } from "../lib/reading";
+import { hiddenReadingKicker, initialHintVisible, showReadingAnswer } from "../lib/reading";
 import {
   noteNeedsHold,
   onRhythmAttack,
@@ -361,7 +361,9 @@ export function LessonScreen() {
           showName={answerVisible}
         />
         <div className="prompt">
-          <p className="prompt-kicker">{promptKicker(isDemo, isRest(current), holding, holdReady, answerVisible)}</p>
+          <p className="prompt-kicker" data-testid="prompt-kicker">
+            {promptKicker(isDemo, isRest(current), holding, holdReady, answerVisible, current.hand)}
+          </p>
           <h2 data-testid="target-note" data-answer-visible={answerVisible ? "true" : "false"}>
             {answerVisible ? promptName(current) : "Read the staff"}
           </h2>
@@ -469,12 +471,13 @@ function promptKicker(
   holding: boolean,
   holdReady: boolean,
   answerVisible: boolean,
+  hand: LessonNote["hand"],
 ): string {
   if (demo) return "Listen";
   if (holdReady) return "Let go";
   if (holding) return "Hold the beat";
   if (rest) return "Stay quiet";
-  if (!answerVisible) return "Read the staff";
+  if (!answerVisible) return hiddenReadingKicker(hand);
   return "Play this note";
 }
 

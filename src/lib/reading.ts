@@ -43,3 +43,8 @@ export function showReadingAnswer(reading: boolean, isDemo: boolean, hintVisible
   if (!reading || isDemo) return true;
   return hintVisible;
 }
+
+/** While the letter is hidden, name the hand without naming the pitch. */
+export function hiddenReadingKicker(hand: "left" | "right" | undefined): string {
+  return hand === "left" ? "Left hand" : "Read the staff";
+}

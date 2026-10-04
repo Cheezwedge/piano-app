@@ -4,6 +4,25 @@ const LINE_GAP = 26;
 const E4_MIDI = 64;
 const F3_MIDI = 53;
 
+/** Bottom line of the bass staff (G2). The fourth line up is F3. */
+export const BASS_BOTTOM_LINE_Y = 154;
+export const STAFF_LINE_GAP = LINE_GAP;
+/** The two bass-clef dots are drawn around this y before the clef is shifted. */
+export const BASS_CLEF_DOT_CENTER_Y = 98;
+
+export function bassLineY(lineFromBottom: number): number {
+  return BASS_BOTTOM_LINE_Y - lineFromBottom * STAFF_LINE_GAP;
+}
+
+/** F3 sits on the fourth bass line. The clef dots straddle that line. */
+export function bassFourthLineY(): number {
+  return bassLineY(3);
+}
+
+export function bassClefShiftY(): number {
+  return bassFourthLineY() - BASS_CLEF_DOT_CENTER_Y;
+}
+
 export function staffStepsFromE4(midi: number): number {
   const diatonic = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
   const octave = Math.floor(midi / 12) - Math.floor(E4_MIDI / 12);
@@ -13,6 +32,11 @@ export function staffStepsFromE4(midi: number): number {
 
 function staffStepsFromF3(midi: number): number {
   return staffStepsFromE4(midi) - staffStepsFromE4(F3_MIDI);
+}
+
+/** Notehead y for a bass-clef pitch. F3 lands on the fourth line. */
+export function bassNoteY(midi: number): number {
+  return bassFourthLineY() - staffStepsFromF3(midi) * (STAFF_LINE_GAP / 2);
 }
 
 interface Props {
@@ -27,13 +51,15 @@ export function Staff({ note, feedback, showFinger, showName = true }: Props) {
   const width = 440;
   const height = 230;
   const e4Y = 128;
-  const f3Y = 102;
   const x = 268;
   const bass = note.midi != null && note.midi < 60;
   const rest = note.midi == null || note.duration === "rest";
-  const steps = rest ? 0 : bass ? staffStepsFromF3(note.midi as number) : staffStepsFromE4(note.midi as number);
-  const baseY = bass ? f3Y : e4Y;
-  const y = rest ? baseY - LINE_GAP : baseY - steps * (LINE_GAP / 2);
+  const steps = rest ? 0 : staffStepsFromE4(note.midi as number);
+  const y = rest
+    ? (bass ? bassFourthLineY() : e4Y) - LINE_GAP
+    : bass
+      ? bassNoteY(note.midi as number)
+      : e4Y - steps * (LINE_GAP / 2);
   const needsLedger = !rest && !bass && (note.midi as number) <= 60;
 
   const fill =
@@ -49,15 +75,27 @@ export function Staff({ note, feedback, showFinger, showName = true }: Props) {
   const stem = note.duration !== "whole" && !rest;
 
   return (
-    <div className="staff-wrap" data-testid="staff">
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={showName ? `Staff, target ${note.name}` : "Staff. Read the note."}>
+    <div className="staff-wrap" data-testid="staff" data-clef={bass ? "bass" : "treble"}>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label={
+          bass
+            ? showName
+              ? `Bass staff, target ${note.name}`
+              : "Bass staff. Read the note."
+            : showName
+              ? `Staff, target ${note.name}`
+              : "Staff. Read the note."
+        }
+      >
         {[0, 1, 2, 3, 4].map((line) => (
           <line
             key={line}
             x1="86"
             x2="420"
-            y1={(bass ? 154 : e4Y) - line * LINE_GAP}
-            y2={(bass ? 154 : e4Y) - line * LINE_GAP}
+            y1={bass ? bassLineY(line) : e4Y - line * LINE_GAP}
+            y2={bass ? bassLineY(line) : e4Y - line * LINE_GAP}
             stroke="#2c2418"
             strokeWidth="1.7"
           />
@@ -136,7 +174,7 @@ function TrebleClef() {
 
 function BassClef() {
   return (
-    <g fill="#2c2418">
+    <g fill="#2c2418" transform={`translate(0 ${bassClefShiftY()})`} data-testid="bass-clef">
       <path d="M92 78c18 0 34 14 34 32 0 22-20 38-46 38v-14c18 0 30-10 30-24 0-12-10-20-22-20-8 0-14 4-18 10l-10-10c8-8 18-12 32-12z" />
       <circle cx="138" cy="88" r="4" />
       <circle cx="138" cy="108" r="4" />

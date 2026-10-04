@@ -4,6 +4,7 @@ import { staffStepsFromE4 } from "../components/Staff";
 import {
   MIDDLE_C_MIDI,
   TREBLE_G_MIDI,
+  hiddenReadingKicker,
   initialHintVisible,
   isOctaveWhiteKey,
   isSkip,
@@ -71,3 +72,73 @@ describe("one-octave staff reading", () => {
 function staffDistanceSafe(from: number, to: number): number {
   return isStep(from, to) ? 1 : isSkip(from, to) ? 2 : -1;
 }
+
+const BASS_WHITES = [48, 50, 52, 53, 55];
+
+describe("bass clef, left hand only", () => {
+  const unit = COURSE_UNITS.find((item) => item.id === "bass-clef");
+
+  it("teaches F on the fourth line, then steps, then a short walk that visits low C", () => {
+    expect(unit?.reading).toBe(true);
+    expect(unit?.rhythm).toBe(false);
+    expect(unit?.keyboard).toBe("wide");
+    const [demo, steps, melody] = unit?.stages ?? [];
+    expect(demo?.kind).toBe("demo");
+    expect(steps?.kind).toBe("guided");
+    expect(melody?.kind).toBe("melody");
+
+    const demoMidis = (demo?.notes ?? []).map((note) => note.midi);
+    expect(demoMidis[0]).toBe(53);
+    expect(demoMidis).toContain(53);
+
+    const stepMidis = (steps?.notes ?? []).map((note) => note.midi as number);
+    expect(stepMidis).toContain(53);
+    expect(stepMidis).toContain(48);
+    for (let i = 1; i < stepMidis.length; i += 1) {
+      expect(isStep(stepMidis[i - 1], stepMidis[i])).toBe(true);
+    }
+
+    const melodyMidis = (melody?.notes ?? []).map((note) => note.midi as number);
+    expect(melodyMidis).toContain(53);
+    expect(melodyMidis).toContain(48);
+    const moves = melodyMidis.slice(1).map((midi, index) => staffDistanceSafe(melodyMidis[index], midi));
+    expect(moves.some((distance) => distance === 2)).toBe(true);
+    expect(moves.every((distance) => distance === 1 || distance === 2)).toBe(true);
+  });
+
+  it("uses only left-hand white keys around F, with the right hand silent", () => {
+    for (const stage of unit?.stages ?? []) {
+      for (const note of stage.notes) {
+        expect(note.hand).toBe("left");
+        expect(note.duration ?? "quarter").toBe("quarter");
+        expect(note.midi).not.toBeNull();
+        expect(BASS_WHITES).toContain(note.midi);
+        expect((note.midi as number) < 60).toBe(true);
+      }
+    }
+  });
+
+  it("names the left hand while the pitch stays hidden", () => {
+    expect(hiddenReadingKicker("left")).toBe("Left hand");
+    expect(hiddenReadingKicker("right")).toBe("Read the staff");
+    expect(showReadingAnswer(true, false, false)).toBe(false);
+    expect(initialHintVisible("guided", true)).toBe(false);
+  });
+
+  it("leaves the two-hand hello sequential", () => {
+    const hello = COURSE_UNITS.find((item) => item.id === "twohands-hello");
+    expect(hello?.reading).toBeUndefined();
+    const melody = hello?.stages[2].notes ?? [];
+    expect(melody.map((note) => note.midi)).toEqual([48, 55, 60, 64, 67, 64, 60, 48]);
+    expect(melody.map((note) => note.hand ?? "right")).toEqual([
+      "left",
+      "left",
+      "right",
+      "right",
+      "right",
+      "right",
+      "right",
+      "left",
+    ]);
+  });
+});
