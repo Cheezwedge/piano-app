@@ -6,6 +6,7 @@ import {
   blackKeyLeft,
   midiToName,
 } from "../audio/notes";
+import type { PointerEvent } from "react";
 import type { FeedbackKind } from "../types";
 
 interface Props {
@@ -14,7 +15,24 @@ interface Props {
   lastPlayed: number | null;
   feedback: FeedbackKind;
   onPlay: (midi: number) => void;
+  onRelease?: (midi: number) => void;
   range?: "treble" | "wide";
+}
+
+function keyPointers(midi: number, onPlay: (midi: number) => void, onRelease?: (midi: number) => void) {
+  return {
+    onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // The pointer can already be gone on a very fast tap.
+      }
+      onPlay(midi);
+    },
+    onPointerUp: () => onRelease?.(midi),
+    onPointerCancel: () => onRelease?.(midi),
+  };
 }
 
 export function PianoKeyboard({
@@ -23,6 +41,7 @@ export function PianoKeyboard({
   lastPlayed,
   feedback,
   onPlay,
+  onRelease,
   range = "treble",
 }: Props) {
   const whites = range === "wide" ? WHITE_KEYS_C3_TO_C5 : WHITE_KEYS_C4_TO_C5;
@@ -34,7 +53,8 @@ export function PianoKeyboard({
         {whites.map((midi) => {
           const isTarget = hintVisible && midi === targetMidi;
           const isPlayed = lastPlayed === midi;
-          const tone = isPlayed ? feedback : isTarget ? "hint" : "idle";
+          const showResult = isPlayed && feedback !== "idle";
+          const tone = showResult ? feedback : isTarget ? "hint" : "idle";
           return (
             <button
               key={midi}
@@ -43,10 +63,7 @@ export function PianoKeyboard({
               data-testid={`key-${midi}`}
               data-hint={isTarget ? "true" : "false"}
               aria-label={midiToName(midi)}
-              onPointerDown={(event) => {
-                event.preventDefault();
-                onPlay(midi);
-              }}
+              {...keyPointers(midi, onPlay, onRelease)}
             >
               {isTarget ? <span className="hint-flag">this key</span> : null}
               <span className="key-label">{midiToName(midi)}</span>
@@ -65,10 +82,7 @@ export function PianoKeyboard({
               style={{ left: blackKeyLeft(midi, whites), width: `calc(100% / ${whites.length} * 0.62)` }}
               data-testid={`key-${midi}`}
               aria-label={midiToName(midi)}
-              onPointerDown={(event) => {
-                event.preventDefault();
-                onPlay(midi);
-              }}
+              {...keyPointers(midi, onPlay, onRelease)}
             />
           );
         })}

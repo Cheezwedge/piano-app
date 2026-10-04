@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { durationBeats, midiToName } from "../audio/notes";
-import { playMidiNote, resumeAudio } from "../audio/synth";
+import { beginHeldTone, endAllHeldTones, endHeldTone, playMidiNote, resumeAudio } from "../audio/synth";
 import { useNoteInput } from "../audio/useNoteInput";
 import { Celebration } from "../components/Celebration";
 import { ListeningStatus } from "../components/ListeningStatus";
@@ -11,13 +11,20 @@ import { UNIT_ORDER } from "../data/courses";
 import { playableById } from "../data/playable";
 import { songById } from "../data/songs";
 import { classifyAttempt, shouldAdvance } from "../lib/practice";
+import {
+  noteNeedsHold,
+  onRhythmAttack,
+  onRhythmRelease,
+  requiredHoldMs,
+  rhythmShouldAdvance,
+  type RhythmHold,
+} from "../lib/rhythm";
 import { isSongUnlocked, isUnitUnlocked, type StageAward } from "../lib/progress";
 import { useActiveKid, useApp } from "../store/AppState";
 import type { FeedbackKind, LessonNote, LessonStage } from "../types";
 
 const HINT_DELAY_MS = 5000;
 const ADVANCE_MS = 900;
-const BEAT_MS = 700;
 
 function isRest(note: LessonNote | undefined): boolean {
   return !note || note.midi == null || note.duration === "rest";
@@ -45,6 +52,8 @@ export function LessonScreen() {
   const [demoPlaying, setDemoPlaying] = useState(false);
   const [lastSource, setLastSource] = useState<string>("");
   const [holding, setHolding] = useState(false);
+  const [holdReady, setHoldReady] = useState(false);
+  const [shortHold, setShortHold] = useState(false);
   const [restNonce, setRestNonce] = useState(0);
   const [award, setAward] = useState<StageAward | null>(null);
   const lockedRef = useRef(false);
@@ -53,6 +62,9 @@ export function LessonScreen() {
   const stageIndexRef = useRef(0);
   const wrongsRef = useRef(0);
   const scoredRef = useRef(0);
+  const holdRef = useRef<RhythmHold | null>(null);
+  const holdReadyTimer = useRef(0);
+  const advanceTimer = useRef(0);
 
   const complete = stageIndex >= unit.stages.length;
   const stage = unit.stages[Math.min(stageIndex, unit.stages.length - 1)];
@@ -81,6 +93,12 @@ export function LessonScreen() {
     setFeedback("idle");
     setLastPlayed(null);
     setHolding(false);
+    setHoldReady(false);
+    setShortHold(false);
+    holdRef.current = null;
+    window.clearTimeout(holdReadyTimer.current);
+    window.clearTimeout(advanceTimer.current);
+    endAllHeldTones();
     lockedRef.current = false;
     setRestNonce((value) => value + 1);
   }, [stageIndex, unit.id]);
@@ -104,7 +122,13 @@ export function LessonScreen() {
   const goToNextNote = () => {
     const stageNow = unit.stages[stageIndexRef.current];
     const nextNote = noteIndexRef.current + 1;
+    window.clearTimeout(holdReadyTimer.current);
+    window.clearTimeout(advanceTimer.current);
+    holdRef.current = null;
     setHolding(false);
+    setHoldReady(false);
+    setShortHold(false);
+    endAllHeldTones();
     if (nextNote < stageNow.notes.length) {
       noteIndexRef.current = nextNote;
       setNoteIndex(nextNote);
@@ -133,48 +157,125 @@ export function LessonScreen() {
     if (!isRest(target)) return;
     const timer = window.setTimeout(() => {
       goToNextNote();
-    }, durationBeats(target.duration) * BEAT_MS);
+    }, requiredHoldMs(target.duration));
     return () => window.clearTimeout(timer);
     // restNonce restarts the quiet wait after a sound during a rest.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDemo, complete, unit.id, stageIndex, noteIndex, restNonce]);
 
-  const handleIncoming = (midi: number, source: string) => {
+  const handleNoteOn = (midi: number, source: string) => {
     if (isDemo || lockedRef.current) return;
-    const target = unit.stages[stageIndexRef.current].notes[noteIndexRef.current];
+    const target = unit.stages[stageIndexRef.current]?.notes[noteIndexRef.current];
     if (!target) return;
     setLastPlayed(midi);
     setLastSource(source);
-    playMidiNote(midi, 0.35);
 
     if (isRest(target)) {
+      playMidiNote(midi, 0.35);
       wrongsRef.current += 1;
       setFeedback("wrong");
+      setShortHold(false);
       setRestNonce((value) => value + 1);
       return;
     }
 
-    const kind = classifyAttempt(midi, target.midi, hintRef.current);
-    setFeedback(kind);
-    if (!shouldAdvance(kind)) {
-      wrongsRef.current += 1;
+    if (!noteNeedsHold(unit.rhythm, target)) {
+      playMidiNote(midi, 0.35);
+      const kind = classifyAttempt(midi, target.midi, hintRef.current);
+      setFeedback(kind);
+      setShortHold(false);
+      if (!shouldAdvance(kind)) {
+        wrongsRef.current += 1;
+        return;
+      }
+      lockedRef.current = true;
+      scoredRef.current += 1;
+      window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = window.setTimeout(() => {
+        goToNextNote();
+      }, ADVANCE_MS);
       return;
     }
 
-    lockedRef.current = true;
-    scoredRef.current += 1;
-    const holdMs = unit.rhythm ? durationBeats(target.duration) * BEAT_MS : ADVANCE_MS;
-    if (unit.rhythm && durationBeats(target.duration) > 1) setHolding(true);
-    window.setTimeout(() => {
-      goToNextNote();
-    }, holdMs);
+    const decision = onRhythmAttack(holdRef.current, midi, target.midi, hintRef.current, performance.now());
+    if (decision.outcome.type === "ignore") return;
+    if (decision.outcome.type === "wrong-pitch") {
+      window.clearTimeout(holdReadyTimer.current);
+      holdRef.current = null;
+      setHolding(false);
+      setHoldReady(false);
+      setShortHold(false);
+      endAllHeldTones();
+      playMidiNote(midi, 0.35);
+      wrongsRef.current += 1;
+      setFeedback("wrong");
+      return;
+    }
+    if (decision.outcome.type !== "holding" || !decision.hold) return;
+
+    const activeHold = decision.hold;
+    holdRef.current = activeHold;
+    setHolding(true);
+    setHoldReady(false);
+    setShortHold(false);
+    setFeedback("idle");
+    if (source === "screen") beginHeldTone(midi);
+    else playMidiNote(midi, 0.35);
+    const required = requiredHoldMs(target.duration);
+    window.clearTimeout(holdReadyTimer.current);
+    holdReadyTimer.current = window.setTimeout(() => {
+      if (holdRef.current !== activeHold) return;
+      setHoldReady(true);
+    }, required);
+  };
+
+  const handleNoteOff = (midi: number, source: string, at = performance.now()) => {
+    if (source === "screen") endHeldTone(midi);
+    if (isDemo || lockedRef.current) return;
+    const target = unit.stages[stageIndexRef.current]?.notes[noteIndexRef.current];
+    if (!target || !noteNeedsHold(unit.rhythm, target)) return;
+
+    const decision = onRhythmRelease(holdRef.current, midi, requiredHoldMs(target.duration), at);
+    if (!rhythmShouldAdvance(decision.outcome) && decision.outcome.type !== "early-release") return;
+
+    window.clearTimeout(holdReadyTimer.current);
+    holdRef.current = null;
+    setHolding(false);
+    setHoldReady(false);
+
+    if (decision.outcome.type === "early-release") {
+      wrongsRef.current += 1;
+      setShortHold(true);
+      setFeedback("wrong");
+      return;
+    }
+
+    if (decision.outcome.type === "completed") {
+      lockedRef.current = true;
+      scoredRef.current += 1;
+      setShortHold(false);
+      setFeedback(decision.outcome.kind);
+      window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = window.setTimeout(() => {
+        goToNextNote();
+      }, ADVANCE_MS);
+    }
   };
 
   const { mic, midi, retryMic } = useNoteInput({
     enabled: !isDemo && !complete,
     calibrationCents: persist.calibrationCents,
-    onNote: (note) => handleIncoming(note.midi, note.source),
+    onNote: (note) => handleNoteOn(note.midi, note.source),
+    onRelease: (note) => handleNoteOff(note.midi, note.source, note.at),
   });
+
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(holdReadyTimer.current);
+      window.clearTimeout(advanceTimer.current);
+      endAllHeldTones();
+    };
+  }, []);
 
   const playDemo = async () => {
     await resumeAudio();
@@ -251,13 +352,15 @@ export function LessonScreen() {
       <section className="lesson-stage">
         <Staff note={current} feedback={feedback} showFinger={persist.showFingerNumbers} />
         <div className="prompt">
-          <p className="prompt-kicker">{promptKicker(isDemo, isRest(current), holding)}</p>
+          <p className="prompt-kicker">{promptKicker(isDemo, isRest(current), holding, holdReady)}</p>
           <h2 data-testid="target-note">{promptName(current)}</h2>
           <FeedbackBanner
             feedback={feedback}
             lastPlayed={lastPlayed}
             rest={isRest(current)}
             holding={holding}
+            holdReady={holdReady}
+            shortHold={shortHold}
           />
           {isDemo ? (
             <p className="status-line">Demo is playing through the speakers. Listening starts when you are ready.</p>
@@ -280,7 +383,11 @@ export function LessonScreen() {
             setLastPlayed(midiNote);
             return;
           }
-          handleIncoming(midiNote, "screen");
+          handleNoteOn(midiNote, "screen");
+        }}
+        onRelease={(midiNote) => {
+          if (isDemo) return;
+          handleNoteOff(midiNote, "screen");
         }}
       />
 
@@ -344,8 +451,9 @@ export function LessonScreen() {
   );
 }
 
-function promptKicker(demo: boolean, rest: boolean, holding: boolean): string {
+function promptKicker(demo: boolean, rest: boolean, holding: boolean, holdReady: boolean): string {
   if (demo) return "Listen";
+  if (holdReady) return "Let go";
   if (holding) return "Hold the beat";
   if (rest) return "Stay quiet";
   return "Play this note";
@@ -361,18 +469,28 @@ function FeedbackBanner({
   lastPlayed,
   rest,
   holding,
+  holdReady,
+  shortHold,
 }: {
   feedback: FeedbackKind;
   lastPlayed: number | null;
   rest: boolean;
   holding: boolean;
+  holdReady: boolean;
+  shortHold: boolean;
 }) {
-  if (holding) return <p className="banner hinted">Keep holding through the beat.</p>;
+  if (holding && holdReady) {
+    return <p className="banner hinted" data-testid="feedback-hold-ready">Good hold. Let go.</p>;
+  }
+  if (holding) return <p className="banner hinted" data-testid="feedback-holding">Keep holding through the beat.</p>;
   if (feedback === "idle" && rest) return <p className="banner idle">This count is a rest. Stay quiet.</p>;
   if (feedback === "idle") return <p className="banner idle">Waiting for the matching key.</p>;
   const played = lastPlayed == null ? "" : midiToName(lastPlayed);
   if (feedback === "wrong" && rest) {
     return <p className="banner wrong" data-testid="feedback-wrong">That was a rest. Stay quiet{played ? ` · heard ${played}` : ""}.</p>;
+  }
+  if (feedback === "wrong" && shortHold) {
+    return <p className="banner wrong" data-testid="feedback-wrong">Try again · hold a little longer.</p>;
   }
   if (feedback === "wrong") {
     return <p className="banner wrong" data-testid="feedback-wrong">Try again{played ? ` · heard ${played}` : ""}.</p>;

@@ -38,10 +38,14 @@ Original Home Keys material only. No licensed songs, Disney/pop tunes, or lookal
 | --- | --- | --- | --- |
 | 1 | **Home Steps** | Treble **C D E F G**, wait-for-correct | **Garden Walk** — C D E D E F E D C |
 | 2 | **Neighbor Notes** | A, B, and high C in C major position | **Porch Light** |
-| 3 | **Steady Beats** | Quarter, half, whole, and rest; hold through the beat | **Quiet Clock** |
+| 3 | **Steady Beats** | Quarter, half, whole, and rest. Hold the key for the full value, then let go | **Quiet Clock** |
 | 4 | **Two Hands Hello** | Sequential left-hand C and G (open fifth), then a right-hand wave | **Low Door** |
 
 Each stage: a short tip / demo → guided practice (hints + wait) → the melody. The next stage unlocks only after the prior one is finished. A grown-up can **Unlock entire path** in settings (behind the PIN) for testing.
+
+**Steady Beats** is the rhythm lesson. A right pitch counts only after it is held for the whole note and then released. A quarter is one count, a half is two, and a whole is four (about 0.7 seconds per count). Letting go early stays on that note and shows the same coral “try again” as a wrong key. The lesson waits until the pitch is right and the hold is long enough. Rests are still one quiet count. There is no metronome.
+
+To try it: finish Home Steps and Neighbor Notes, or unlock the path in grown-up settings, then start **Steady Beats** and tap **I am ready**. On **Hold and rest**, E is a half note and G is a whole note. Press and hold the glowing key. Release early and the lesson does not move on. Hold until it says to let go, then release, and it does.
 
 Optional finger numbers: right-hand C=1 through G=5; left-hand notes show as LH. Toggle in settings.
 

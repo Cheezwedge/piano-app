@@ -536,6 +536,8 @@ input:not([type="checkbox"]) {
   background: #fffdf8;
   position: relative;
   cursor: pointer;
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 .white-key.tone-hint,
@@ -607,6 +609,8 @@ input:not([type="checkbox"]) {
   border-radius: 0 0 8px 8px;
   background: #2b241c;
   cursor: pointer;
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 .black-key.tone-wrong {

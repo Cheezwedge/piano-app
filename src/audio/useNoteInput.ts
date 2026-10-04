@@ -8,20 +8,25 @@ import { LISTEN_OFF, type ListenChannel } from "./listenStatus";
 export interface IncomingNote {
   midi: number;
   source: "mic" | "midi" | "screen";
+  /** When the attack or release happened. Omit to use the clock in the handler. */
+  at?: number;
 }
 
 interface Options {
   enabled: boolean;
   calibrationCents: number;
   onNote: (note: IncomingNote) => void;
+  onRelease?: (note: IncomingNote) => void;
 }
 
-export function useNoteInput({ enabled, calibrationCents, onNote }: Options) {
+export function useNoteInput({ enabled, calibrationCents, onNote, onRelease }: Options) {
   const [mic, setMic] = useState<ListenChannel>(LISTEN_OFF);
   const [midi, setMidi] = useState<ListenChannel>(LISTEN_OFF);
   const [retryTick, setRetryTick] = useState(0);
   const onNoteRef = useRef(onNote);
+  const onReleaseRef = useRef(onRelease);
   onNoteRef.current = onNote;
+  onReleaseRef.current = onRelease;
   const flashRef = useRef<number>(0);
 
   useEffect(() => {
@@ -57,6 +62,9 @@ export function useNoteInput({ enabled, calibrationCents, onNote }: Options) {
             flash("mic", hit.midi);
             onNoteRef.current({ midi: hit.midi, source: "mic" });
           },
+          onRelease: (midiNote, at) => {
+            onReleaseRef.current?.({ midi: midiNote, source: "mic", at });
+          },
         });
         if (!cancelled) setMic({ status: "listening" });
         else stopMic();
@@ -68,7 +76,10 @@ export function useNoteInput({ enabled, calibrationCents, onNote }: Options) {
         stopMidi = await startMidiWatch({
           onNote: (hit) => {
             flash("midi", hit.midi);
-            onNoteRef.current({ midi: hit.midi, source: "midi" });
+            onNoteRef.current({ midi: hit.midi, source: "midi", at: hit.at });
+          },
+          onRelease: (hit) => {
+            onReleaseRef.current?.({ midi: hit.midi, source: "midi", at: hit.at });
           },
           onStatus: (state) => {
             if (!cancelled) setMidi(state);

@@ -4,10 +4,26 @@ import type { ListenChannel } from "./listenStatus";
 export interface MidiHit {
   midi: number;
   velocity: number;
+  /** performance.now() when the message was handled. */
+  at: number;
+}
+
+export type MidiMessageKind = "on" | "off";
+
+/** Note-on with velocity, or note-off (including note-on velocity 0). */
+export function parseMidiMessage(data: Uint8Array | number[]): { kind: MidiMessageKind; midi: number; velocity: number } | null {
+  if (data.length < 3) return null;
+  const status = data[0] & 0xf0;
+  const note = data[1];
+  const velocity = data[2];
+  if (status === 0x90 && velocity > 0) return { kind: "on", midi: note, velocity };
+  if (status === 0x80 || (status === 0x90 && velocity === 0)) return { kind: "off", midi: note, velocity };
+  return null;
 }
 
 interface MidiWatchOptions {
   onNote: (hit: MidiHit) => void;
+  onRelease?: (hit: MidiHit) => void;
   onStatus: (state: ListenChannel) => void;
 }
 
@@ -35,13 +51,12 @@ export async function startMidiWatch(options: MidiWatchOptions): Promise<() => v
   const handle = (event: Event) => {
     const message = event as MIDIMessageEvent;
     const data = message.data;
-    if (!data || data.length < 3) return;
-    const status = data[0] & 0xf0;
-    const note = data[1];
-    const velocity = data[2];
-    if (status === 0x90 && velocity > 0) {
-      options.onNote({ midi: note, velocity });
-    }
+    if (!data) return;
+    const parsed = parseMidiMessage(data);
+    if (!parsed) return;
+    const hit: MidiHit = { midi: parsed.midi, velocity: parsed.velocity, at: performance.now() };
+    if (parsed.kind === "on") options.onNote(hit);
+    else options.onRelease?.(hit);
   };
 
   const attachInputs = () => {
