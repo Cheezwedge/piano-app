@@ -38,6 +38,14 @@ export interface LessonStage {
   notes: LessonNote[];
 }
 
+/** One practice sitting inside a longer library piece. */
+export interface SongSection {
+  id: string;
+  title: string;
+  blurb: string;
+  notes: LessonNote[];
+}
+
 export interface CourseUnit {
   id: string;
   courseId: string;
@@ -60,6 +68,13 @@ export interface LibrarySong {
   blurb: string;
   /** Course unit that must be finished (stars > 0) before this song unlocks. */
   unlockAfterUnitId: string;
+  /**
+   * Other songs that must be finished before this one opens.
+   * A grown-up PIN unlock still skips this wait.
+   */
+  unlockAfterSongIds?: string[];
+  /** Longer pieces can be practiced one section at a time. `notes` is every section in order. */
+  sections?: SongSection[];
   band: SongBand;
   bandLabel: string;
   keyboard: "treble" | "wide";

@@ -27,7 +27,7 @@ Data stays in this browser (`localStorage` key `home-keys-v1`). Reset it from Gr
 
 1. Grown-up creates a **4, 5, or 6 digit** PIN.
 2. Grown-up adds a kid profile.
-3. Kid starts **Home Steps** (the first five treble notes). Later stages stay locked until the prior one is finished. Matching **library songs** unlock after those stages (unlocked songs do not need the PIN).
+3. Kid starts **Home Steps** (the first five treble notes). Later stages stay locked until the prior one is finished. After Home Steps, **Hot Cross Buns** and **Mary Had a Little Lamb** open first. The other Home Steps songs wait until those two are finished. Unlocked songs do not need the PIN.
 4. Settings, switching kid profiles, resetting progress, and leaving a lesson early all ask for the PIN (unless a parent just unlocked).
 
 ## Course path
@@ -55,7 +55,9 @@ The **course path** stays original Home Keys material. The separate **song libra
 
 A kid-safe **Songs / Library** section on the home path. Unlocked songs play in the same practice mode as course stages (wait-for-correct, color feedback, mic / MIDI / on-screen keys, stars and XP). Playing an unlocked song does **not** ask for the parent PIN. Settings, early leave, and unlocking a *locked* song still do.
 
-Songs unlock when the matching course stage is finished. A grown-up can unlock one song (PIN on the library card) or **Unlock entire library** in settings.
+Songs unlock when the matching course stage is finished. After **Home Steps**, only **Hot Cross Buns** and **Mary Had a Little Lamb** open. Au Clair de la Lune, Ode to Joy, Lightly Row, and Spring stay locked until both of those are finished. Neighbor Notes songs and Canon still open with their own course stage. A grown-up can unlock one song (PIN on the library card) or **Unlock entire library** in settings, which skips the wait.
+
+Spring, Brahms Lullaby, and Canon are longer than a single short line. Each is split into sections the child plays one at a time. Spring stays on C D E F G. Brahms Lullaby and Canon stay on the treble white keys. They are still public-domain melodies in an original Home Keys simplification, not a full concerto, lullaby edition, or canon.
 
 These are original Home Keys simplified arrangements encoded as note sequences — not Simply Piano, MuseScore commercial packs, Disney/pop/video-game melodies, or copyrighted modern editions.
 
@@ -63,16 +65,16 @@ These are original Home Keys simplified arrangements encoded as note sequences �
 | --- | --- | --- | --- |
 | **Hot Cross Buns** | Traditional English nursery rhyme | Traditional melody, public domain; Home Keys simplified arrangement © original | Home Steps |
 | **Mary Had a Little Lamb** | Traditional / 1830s nursery song | Composition PD in the US; Home Keys simplified arrangement © original | Home Steps |
-| **Au Clair de la Lune** | Traditional French folk | Traditional melody, PD; instrumental teaching line only; Home Keys simplified arrangement © original | Home Steps |
-| **Ode to Joy** | Beethoven, Symphony No. 9 (1824) | Beethoven d. 1827 — composition PD; Home Keys simplified single-line arrangement © original | Home Steps |
-| **Lightly Row** | Traditional folk teaching melody | Traditional melody, PD; Home Keys simplified arrangement © original | Home Steps |
-| **Spring (motif)** | Vivaldi, *The Four Seasons* (1725) | Vivaldi d. 1741 — composition PD; short Home Keys motif © original | Home Steps |
+| **Au Clair de la Lune** | Traditional French folk | Traditional melody, PD; instrumental teaching line only; Home Keys simplified arrangement © original | Home Steps, after Hot Cross Buns and Mary are finished |
+| **Ode to Joy** | Beethoven, Symphony No. 9 (1824) | Beethoven d. 1827 — composition PD; Home Keys simplified single-line arrangement © original | Home Steps, after Hot Cross Buns and Mary are finished |
+| **Lightly Row** | Traditional folk teaching melody | Traditional melody, PD; Home Keys simplified arrangement © original | Home Steps, after Hot Cross Buns and Mary are finished |
+| **Spring (motif)** | Vivaldi, *The Four Seasons* (1725) | Vivaldi d. 1741 — composition PD; Home Keys opening in two sections, C–G only © original | Home Steps, after Hot Cross Buns and Mary are finished |
 | **Twinkle Twinkle** | Traditional French *Ah! vous dirai-je, Maman* (Mozart wrote PD variations on the theme) | Traditional 18th-c. melody, PD; Mozart d. 1791; Home Keys simplified arrangement © original | Neighbor Notes |
 | **Frère Jacques** | Traditional French round | Traditional melody, PD; instrumental only; Home Keys simplified arrangement © original | Neighbor Notes |
-| **Brahms Lullaby** | Brahms, *Wiegenlied* Op. 49 No. 4 (1868) | Brahms d. 1897; published 1868 — composition PD in the US; Home Keys simplified arrangement © original | Neighbor Notes |
+| **Brahms Lullaby** | Brahms, *Wiegenlied* Op. 49 No. 4 (1868) | Brahms d. 1897; published 1868 — composition PD in the US; Home Keys two-part arrangement © original | Neighbor Notes |
 | **Minuet in G** | Christian Petzold (traditionally attributed as Bach BWV Anh. 114) | Petzold d. 1733; Bach d. 1750 — composition PD; Home Keys simplified C4–C5 excerpt © original | Neighbor Notes |
 | **Eine Kleine Nachtmusik** | Mozart, K. 525 (1787) | Mozart d. 1791 — composition PD; Home Keys simplified snippet © original | Neighbor Notes |
-| **Canon (simplified)** | Pachelbel, Canon in D (c. 1680) | Pachelbel d. 1706 — composition PD; very simplified C-major single line © original | Steady Beats |
+| **Canon (simplified)** | Pachelbel, Canon in D (c. 1680) | Pachelbel d. 1706 — composition PD; longer C-major line in three sections © original | Steady Beats |
 
 All twelve pieces stay on treble C4–C5 white keys so they match the on-screen keyboard. None include adult, drinking, war, romantic/adult-lyric, or spooky horror themes.
 
