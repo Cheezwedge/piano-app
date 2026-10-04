@@ -395,6 +395,31 @@ input:not([type="checkbox"]) {
   max-height: 220px;
 }
 
+.grand-staff {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  min-height: 0;
+}
+
+.hand-label {
+  margin: 0 0 2px;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.grand-staff .staff-wrap {
+  height: auto;
+  padding: 2px 8px;
+}
+
+.grand-staff .staff-wrap svg {
+  max-height: 108px;
+}
+
 .finger-svg,
 .staff-name {
   font-family: Nunito, sans-serif;
@@ -417,6 +442,11 @@ input:not([type="checkbox"]) {
 .prompt h2 {
   font-size: 3.2rem;
   line-height: 0.95;
+}
+
+.prompt h2.together-title {
+  font-size: 1.7rem;
+  line-height: 1.15;
 }
 
 .prompt-kicker {

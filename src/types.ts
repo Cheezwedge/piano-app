@@ -22,12 +22,23 @@ export type NoteDuration = "quarter" | "half" | "whole" | "rest";
 
 export type Hand = "right" | "left";
 
+/** The other hand's note, sounding at the same time as the main note. */
+export interface TogetherPart {
+  midi: number;
+  name: string;
+  finger: number;
+  hand: Hand;
+  duration?: NoteDuration;
+}
+
 export interface LessonNote {
   midi: number | null;
   name: string;
   finger: number;
   duration?: NoteDuration;
   hand?: Hand;
+  /** When set, this pitch and `together` must be down at the same time. */
+  together?: TogetherPart;
 }
 
 export interface LessonStage {

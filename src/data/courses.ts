@@ -41,6 +41,22 @@ const QUIET_CLOCK = [
 /** Low Door — original two-hand hello. Sequential, not a copyrighted bass line. */
 const LOW_DOOR = [C3, G3, C, E, G, E, C, C3];
 
+/** Still Steps — original. Left hand holds low C while the right hand steps above it. */
+function heldBass(melody: LessonNote, bass: LessonNote): LessonNote {
+  return {
+    ...melody,
+    together: {
+      midi: bass.midi as number,
+      name: bass.name,
+      finger: bass.finger,
+      hand: "left",
+      duration: "whole",
+    },
+  };
+}
+
+const STILL_STEPS = [heldBass(C, C3), heldBass(E, C3), heldBass(G, C3), heldBass(E, C3)];
+
 /** Steps down from the bass F line to low C and back. Each move is a neighbor. */
 const BASS_STEPS = [F3, G3, F3, E3, D3, C3, D3, E3, F3];
 
@@ -217,6 +233,38 @@ export const COURSE_UNITS: CourseUnit[] = [
         title: "Low Door",
         blurb: "An original call-and-answer. No licensed bass lines — just a door downstairs and a window up top.",
         notes: LOW_DOOR,
+      },
+    ],
+  },
+  {
+    id: "hands-together",
+    courseId: "together",
+    title: "Both at Once",
+    subtitle: "Left hand holds",
+    blurb: "Hold low C with the left hand. The right hand steps C, E, G, E on top. Both hands sound together.",
+    keyboard: "wide",
+    rhythm: true,
+    stages: [
+      {
+        id: "demo",
+        kind: "demo",
+        title: "Hear both hands",
+        blurb: "The left hand holds low C. The right hand plays C, E, G, E while that C stays down. Listen for both.",
+        notes: STILL_STEPS,
+      },
+      {
+        id: "guided",
+        kind: "guided",
+        title: "Hold and step",
+        blurb: "Hold the left-hand key the whole time. Add each right-hand key and keep it for the beat, then let only the right hand go.",
+        notes: STILL_STEPS,
+      },
+      {
+        id: "melody",
+        kind: "melody",
+        title: "Still Steps",
+        blurb: "An original pattern. Low C stays in the left hand. The right hand walks C E G E. One hand alone does not count.",
+        notes: STILL_STEPS,
       },
     ],
   },

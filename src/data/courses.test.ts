@@ -11,7 +11,7 @@ describe("course path", () => {
     expect(LESSON_1.stages[2].title).toBe("Garden Walk");
   });
 
-  it("uses original titles and six unlockable units", () => {
+  it("uses original titles and seven unlockable units", () => {
     expect(COURSE_UNITS.map((unit) => unit.id)).toEqual([
       "basics-five",
       "neighbors-abc",
@@ -19,6 +19,7 @@ describe("course path", () => {
       "bass-clef",
       "rhythm-beats",
       "twohands-hello",
+      "hands-together",
     ]);
     for (const unit of COURSE_UNITS) {
       expect(unit.title).not.toMatch(BANNED);

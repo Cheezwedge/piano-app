@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { durationBeats, midiToName } from "../audio/notes";
-import { beginHeldTone, endAllHeldTones, endHeldTone, playMidiNote, resumeAudio } from "../audio/synth";
+import { beginHeldTone, endAllHeldTones, endAllHeldTonesExcept, endHeldTone, playMidiNote, resumeAudio } from "../audio/synth";
 import { useNoteInput } from "../audio/useNoteInput";
 import { Celebration } from "../components/Celebration";
 import { ListeningStatus } from "../components/ListeningStatus";
@@ -20,6 +20,15 @@ import {
   rhythmShouldAdvance,
   type RhythmHold,
 } from "../lib/rhythm";
+import {
+  carryTogetherBass,
+  emptyTogether,
+  togetherAttack,
+  togetherRelease,
+  type TogetherEvent,
+  type TogetherPhase,
+  type TogetherSession,
+} from "../lib/together";
 import { isSongUnlocked, isUnitUnlocked, type StageAward } from "../lib/progress";
 import { useActiveKid, useApp } from "../store/AppState";
 import type { FeedbackKind, LessonNote, LessonStage } from "../types";
@@ -55,6 +64,7 @@ export function LessonScreen() {
   const [holding, setHolding] = useState(false);
   const [holdReady, setHoldReady] = useState(false);
   const [shortHold, setShortHold] = useState(false);
+  const [togetherPhase, setTogetherPhase] = useState<TogetherPhase | null>(null);
   const [restNonce, setRestNonce] = useState(0);
   const [award, setAward] = useState<StageAward | null>(null);
   const lockedRef = useRef(false);
@@ -64,6 +74,7 @@ export function LessonScreen() {
   const wrongsRef = useRef(0);
   const scoredRef = useRef(0);
   const holdRef = useRef<RhythmHold | null>(null);
+  const togetherRef = useRef<TogetherSession>(emptyTogether());
   const holdReadyTimer = useRef(0);
   const advanceTimer = useRef(0);
 
@@ -72,6 +83,17 @@ export function LessonScreen() {
   const current = stage.notes[Math.min(noteIndex, stage.notes.length - 1)];
   const isDemo = !complete && stage.kind === "demo";
   const answerVisible = showReadingAnswer(Boolean(unit.reading), isDemo, hintVisible);
+  const togetherPart = current.together;
+  const bassNote: LessonNote | null = togetherPart
+    ? {
+        midi: togetherPart.midi,
+        name: togetherPart.name,
+        finger: togetherPart.finger,
+        hand: togetherPart.hand,
+        duration: togetherPart.duration,
+      }
+    : null;
+  const shownTogetherPhase = isDemo ? null : togetherPhase ?? (togetherPart ? "need-bass" : null);
   const unlocked = fromLibrary
     ? isSongUnlocked(songById(unit.id)?.unlockAfterUnitId ?? "", unit.id, {
         stars: kid?.stageStars ?? {},
@@ -99,6 +121,8 @@ export function LessonScreen() {
     setHoldReady(false);
     setShortHold(false);
     holdRef.current = null;
+    togetherRef.current = emptyTogether();
+    setTogetherPhase(null);
     window.clearTimeout(holdReadyTimer.current);
     window.clearTimeout(advanceTimer.current);
     endAllHeldTones();
@@ -132,7 +156,12 @@ export function LessonScreen() {
     setHolding(false);
     setHoldReady(false);
     setShortHold(false);
-    endAllHeldTones();
+    const upcoming = nextNote < stageNow.notes.length ? stageNow.notes[nextNote] : undefined;
+    const carried = carryTogetherBass(togetherRef.current, upcoming?.together?.midi ?? null);
+    togetherRef.current = carried;
+    setTogetherPhase(carried.bassDownSince != null ? "bass-ready" : upcoming?.together ? "need-bass" : null);
+    if (carried.bassMidi != null) endAllHeldTonesExcept(carried.bassMidi);
+    else endAllHeldTones();
     if (nextNote < stageNow.notes.length) {
       noteIndexRef.current = nextNote;
       setNoteIndex(nextNote);
@@ -167,12 +196,82 @@ export function LessonScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDemo, complete, unit.id, stageIndex, noteIndex, restNonce]);
 
+  const finishTogetherBeat = (event: Extract<TogetherEvent, { type: "completed" }>) => {
+    lockedRef.current = true;
+    scoredRef.current += 1;
+    setShortHold(false);
+    setHolding(false);
+    setHoldReady(false);
+    setFeedback(event.kind);
+    window.clearTimeout(holdReadyTimer.current);
+    window.clearTimeout(advanceTimer.current);
+    advanceTimer.current = window.setTimeout(() => {
+      goToNextNote();
+    }, ADVANCE_MS);
+  };
+
   const handleNoteOn = (midi: number, source: string) => {
     if (isDemo || lockedRef.current) return;
     const target = unit.stages[stageIndexRef.current]?.notes[noteIndexRef.current];
     if (!target) return;
     setLastPlayed(midi);
     setLastSource(source);
+
+    if (target.together && target.midi != null) {
+      const needsHold = noteNeedsHold(unit.rhythm, target);
+      const decision = togetherAttack(
+        togetherRef.current,
+        midi,
+        target.midi,
+        target.together.midi,
+        hintRef.current,
+        performance.now(),
+        needsHold,
+      );
+      togetherRef.current = decision.session;
+      if (decision.event.type === "ignore") return;
+      if (decision.event.type === "wrong") {
+        playMidiNote(midi, 0.35);
+        wrongsRef.current += 1;
+        setShortHold(false);
+        setFeedback("wrong");
+        return;
+      }
+      if (source === "screen") beginHeldTone(midi);
+      else playMidiNote(midi, 0.35);
+      if (decision.event.type === "need-bass") {
+        setTogetherPhase("need-bass");
+        setHolding(false);
+        setHoldReady(false);
+        setFeedback("idle");
+        return;
+      }
+      if (decision.event.type === "bass-ready") {
+        setTogetherPhase("bass-ready");
+        setHolding(false);
+        setHoldReady(false);
+        setShortHold(false);
+        setFeedback("idle");
+        return;
+      }
+      if (decision.event.type === "holding") {
+        setTogetherPhase("holding");
+        setHolding(true);
+        setHoldReady(false);
+        setShortHold(false);
+        setFeedback("idle");
+        const started = decision.session.melodyDownSince;
+        window.clearTimeout(holdReadyTimer.current);
+        holdReadyTimer.current = window.setTimeout(() => {
+          if (togetherRef.current.melodyDownSince !== started) return;
+          setHoldReady(true);
+          setTogetherPhase("ready");
+        }, requiredHoldMs(target.duration));
+        return;
+      }
+      if (decision.event.type === "completed") finishTogetherBeat(decision.event);
+      return;
+    }
 
     if (isRest(target)) {
       playMidiNote(midi, 0.35);
@@ -235,8 +334,50 @@ export function LessonScreen() {
 
   const handleNoteOff = (midi: number, source: string, at = performance.now()) => {
     if (source === "screen") endHeldTone(midi);
-    if (isDemo || lockedRef.current) return;
     const target = unit.stages[stageIndexRef.current]?.notes[noteIndexRef.current];
+    if (target?.together && target.midi != null) {
+      if (isDemo) return;
+      if (lockedRef.current) {
+        if (midi === target.together.midi && togetherRef.current.bassMidi === midi) {
+          togetherRef.current = { ...togetherRef.current, bassMidi: null, bassDownSince: null };
+        }
+        return;
+      }
+      if (!noteNeedsHold(unit.rhythm, target)) {
+        if (midi === target.together.midi && togetherRef.current.bassMidi === midi) {
+          togetherRef.current = { ...togetherRef.current, bassMidi: null, bassDownSince: null };
+          setTogetherPhase("need-bass");
+        }
+        return;
+      }
+      const decision = togetherRelease(
+        togetherRef.current,
+        midi,
+        target.midi,
+        target.together.midi,
+        target.duration,
+        at,
+      );
+      togetherRef.current = decision.session;
+      if (decision.event.type === "ignore") return;
+      window.clearTimeout(holdReadyTimer.current);
+      setHolding(false);
+      setHoldReady(false);
+      if (decision.event.type === "need-bass") {
+        setTogetherPhase("need-bass");
+        return;
+      }
+      if (decision.event.type === "early-release") {
+        setTogetherPhase(decision.session.bassDownSince != null ? "bass-ready" : "need-bass");
+        wrongsRef.current += 1;
+        setShortHold(true);
+        setFeedback("wrong");
+        return;
+      }
+      if (decision.event.type === "completed") finishTogetherBeat(decision.event);
+      return;
+    }
+    if (isDemo || lockedRef.current) return;
     if (!target || !noteNeedsHold(unit.rhythm, target)) return;
 
     const decision = onRhythmRelease(holdRef.current, midi, requiredHoldMs(target.duration), at);
@@ -284,14 +425,21 @@ export function LessonScreen() {
   const playDemo = async () => {
     await resumeAudio();
     setDemoPlaying(true);
+    let bassSounding: number | null = null;
     for (let i = 0; i < stage.notes.length; i += 1) {
       const item = stage.notes[i];
       setNoteIndex(i);
       setLastPlayed(item.midi);
       setHintVisible(true);
+      if (item.together && bassSounding !== item.together.midi) {
+        if (bassSounding != null) endHeldTone(bassSounding);
+        beginHeldTone(item.together.midi);
+        bassSounding = item.together.midi;
+      }
       if (item.midi != null && item.duration !== "rest") playMidiNote(item.midi, 0.6);
       await wait(durationBeats(item.duration) * 720);
     }
+    endAllHeldTones();
     setDemoPlaying(false);
     setLastPlayed(null);
     setNoteIndex(0);
@@ -354,17 +502,45 @@ export function LessonScreen() {
       ) : null}
 
       <section className="lesson-stage">
-        <Staff
-          note={current}
-          feedback={feedback}
-          showFinger={persist.showFingerNumbers && answerVisible}
-          showName={answerVisible}
-        />
+        {bassNote ? (
+          <div className="grand-staff" data-testid="grand-staff">
+            <div>
+              <p className="hand-label" data-testid="hand-right">Right hand</p>
+              <Staff
+                note={current}
+                feedback={feedback}
+                showFinger={persist.showFingerNumbers && answerVisible}
+                showName={answerVisible}
+              />
+            </div>
+            <div>
+              <p className="hand-label" data-testid="hand-left">Left hand holds</p>
+              <Staff
+                note={bassNote}
+                feedback={feedback}
+                showFinger={persist.showFingerNumbers && answerVisible}
+                showName={answerVisible}
+              />
+            </div>
+          </div>
+        ) : (
+          <Staff
+            note={current}
+            feedback={feedback}
+            showFinger={persist.showFingerNumbers && answerVisible}
+            showName={answerVisible}
+          />
+        )}
         <div className="prompt">
           <p className="prompt-kicker" data-testid="prompt-kicker">
-            {promptKicker(isDemo, isRest(current), holding, holdReady, answerVisible, current.hand)}
+            {promptKicker(isDemo, isRest(current), holding, holdReady, answerVisible, current.hand, shownTogetherPhase)}
           </p>
-          <h2 data-testid="target-note" data-answer-visible={answerVisible ? "true" : "false"}>
+          <h2
+            className={togetherPart ? "together-title" : undefined}
+            data-testid="target-note"
+            data-answer-visible={answerVisible ? "true" : "false"}
+            data-together={togetherPart ? "true" : "false"}
+          >
             {answerVisible ? promptName(current) : "Read the staff"}
           </h2>
           <FeedbackBanner
@@ -375,6 +551,7 @@ export function LessonScreen() {
             holdReady={holdReady}
             shortHold={shortHold}
             answerVisible={answerVisible}
+            togetherPhase={shownTogetherPhase}
           />
           {isDemo ? (
             <p className="status-line">Demo is playing through the speakers. Listening starts when you are ready.</p>
@@ -387,6 +564,9 @@ export function LessonScreen() {
 
       <PianoKeyboard
         targetMidi={current.midi}
+        alsoMidi={togetherPart?.midi ?? null}
+        hintLabel={togetherPart ? "RH" : "this key"}
+        alsoHintLabel="LH"
         hintVisible={isDemo || hintVisible}
         lastPlayed={lastPlayed}
         feedback={feedback}
@@ -440,7 +620,9 @@ export function LessonScreen() {
             <p className="muted">
               {noteIndex + 1} / {stage.notes.length}
               {persist.showFingerNumbers && answerVisible && !isRest(current)
-                ? ` · ${current.hand === "left" ? "LH" : "RH"} finger ${current.finger}`
+                ? togetherPart
+                  ? ` · LH finger ${togetherPart.finger} holds · RH finger ${current.finger}`
+                  : ` · ${current.hand === "left" ? "LH" : "RH"} finger ${current.finger}`
                 : ""}
               {unit.rhythm && current.duration ? ` · ${current.duration}` : ""}
             </p>
@@ -472,8 +654,13 @@ function promptKicker(
   holdReady: boolean,
   answerVisible: boolean,
   hand: LessonNote["hand"],
+  togetherPhase: TogetherPhase | null,
 ): string {
   if (demo) return "Listen";
+  if (togetherPhase === "ready") return "Let the right hand go";
+  if (togetherPhase === "holding" || (holding && togetherPhase)) return "Both hands";
+  if (togetherPhase === "bass-ready") return "Left hand is holding";
+  if (togetherPhase === "need-bass") return "Left hand holds";
   if (holdReady) return "Let go";
   if (holding) return "Hold the beat";
   if (rest) return "Stay quiet";
@@ -483,6 +670,7 @@ function promptKicker(
 
 function promptName(note: LessonNote): string {
   if (note.midi == null || note.duration === "rest") return "Rest";
+  if (note.together) return `LH ${note.together.name} holds · RH ${note.name}`;
   return note.hand === "left" ? `LH ${note.name}` : note.name;
 }
 
@@ -494,6 +682,7 @@ function FeedbackBanner({
   holdReady,
   shortHold,
   answerVisible,
+  togetherPhase,
 }: {
   feedback: FeedbackKind;
   lastPlayed: number | null;
@@ -502,16 +691,8 @@ function FeedbackBanner({
   holdReady: boolean;
   shortHold: boolean;
   answerVisible: boolean;
+  togetherPhase: TogetherPhase | null;
 }) {
-  if (holding && holdReady) {
-    return <p className="banner hinted" data-testid="feedback-hold-ready">Good hold. Let go.</p>;
-  }
-  if (holding) return <p className="banner hinted" data-testid="feedback-holding">Keep holding through the beat.</p>;
-  if (feedback === "idle" && rest) return <p className="banner idle">This count is a rest. Stay quiet.</p>;
-  if (feedback === "idle" && !answerVisible) {
-    return <p className="banner idle">Look at the staff, then play that key.</p>;
-  }
-  if (feedback === "idle") return <p className="banner idle">Waiting for the matching key.</p>;
   const played = lastPlayed == null ? "" : midiToName(lastPlayed);
   if (feedback === "wrong" && rest) {
     return <p className="banner wrong" data-testid="feedback-wrong">That was a rest. Stay quiet{played ? ` · heard ${played}` : ""}.</p>;
@@ -525,6 +706,34 @@ function FeedbackBanner({
   if (feedback === "correct-after-hint") {
     return <p className="banner hinted" data-testid="feedback-hinted">Yes — after a hint.</p>;
   }
+  if (feedback === "correct") {
+    return <p className="banner correct" data-testid="feedback-correct">Yes — first try.</p>;
+  }
+  if (togetherPhase === "ready") {
+    return (
+      <p className="banner hinted" data-testid="feedback-hold-ready">
+        Good hold. Let the right hand go. Keep the left hand down.
+      </p>
+    );
+  }
+  if (togetherPhase === "holding") {
+    return <p className="banner hinted" data-testid="feedback-holding">Both keys are down. Keep them through the beat.</p>;
+  }
+  if (holding && holdReady) {
+    return <p className="banner hinted" data-testid="feedback-hold-ready">Good hold. Let go.</p>;
+  }
+  if (holding) return <p className="banner hinted" data-testid="feedback-holding">Keep holding through the beat.</p>;
+  if (feedback === "idle" && togetherPhase === "bass-ready") {
+    return <p className="banner idle">Left hand is holding. Play the right-hand note.</p>;
+  }
+  if (feedback === "idle" && togetherPhase === "need-bass") {
+    return <p className="banner idle">Hold the left-hand key, then play the right-hand note.</p>;
+  }
+  if (feedback === "idle" && rest) return <p className="banner idle">This count is a rest. Stay quiet.</p>;
+  if (feedback === "idle" && !answerVisible) {
+    return <p className="banner idle">Look at the staff, then play that key.</p>;
+  }
+  if (feedback === "idle") return <p className="banner idle">Waiting for the matching key.</p>;
   return <p className="banner correct" data-testid="feedback-correct">Yes — first try.</p>;
 }
 

@@ -63,6 +63,13 @@ export function endAllHeldTones(): void {
   for (const midi of [...heldTones.keys()]) endHeldTone(midi);
 }
 
+/** Stop every sounding key except one the child is still holding. */
+export function endAllHeldTonesExcept(keepMidi: number | null): void {
+  for (const midi of [...heldTones.keys()]) {
+    if (midi !== keepMidi) endHeldTone(midi);
+  }
+}
+
 export function playMidiNote(midi: number, duration = 0.55, when = 0): void {
   const ctx = getAudioContext();
   const start = Math.max(ctx.currentTime, ctx.currentTime + when);

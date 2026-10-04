@@ -11,12 +11,16 @@ import type { FeedbackKind } from "../types";
 
 interface Props {
   targetMidi: number | null;
+  /** A second key that must glow with the target, for a hands-together beat. */
+  alsoMidi?: number | null;
   hintVisible: boolean;
   lastPlayed: number | null;
   feedback: FeedbackKind;
   onPlay: (midi: number) => void;
   onRelease?: (midi: number) => void;
   range?: "treble" | "wide";
+  hintLabel?: string;
+  alsoHintLabel?: string;
 }
 
 function keyPointers(midi: number, onPlay: (midi: number) => void, onRelease?: (midi: number) => void) {
@@ -37,12 +41,15 @@ function keyPointers(midi: number, onPlay: (midi: number) => void, onRelease?: (
 
 export function PianoKeyboard({
   targetMidi,
+  alsoMidi = null,
   hintVisible,
   lastPlayed,
   feedback,
   onPlay,
   onRelease,
   range = "treble",
+  hintLabel = "this key",
+  alsoHintLabel = "this key",
 }: Props) {
   const whites = range === "wide" ? WHITE_KEYS_C3_TO_C5 : WHITE_KEYS_C4_TO_C5;
   const blacks = range === "wide" ? BLACK_KEYS_C3_TO_C5 : BLACK_KEYS_C4_TO_C5;
@@ -51,7 +58,9 @@ export function PianoKeyboard({
     <div className={`keyboard ${range === "wide" ? "wide" : ""}`} data-testid="keyboard" aria-label="On-screen piano">
       <div className="white-row" style={{ gridTemplateColumns: `repeat(${whites.length}, 1fr)` }}>
         {whites.map((midi) => {
-          const isTarget = hintVisible && midi === targetMidi;
+          const isMelody = midi === targetMidi;
+          const isBass = alsoMidi != null && midi === alsoMidi;
+          const isTarget = hintVisible && (isMelody || isBass);
           const isPlayed = lastPlayed === midi;
           const showResult = isPlayed && feedback !== "idle";
           const tone = showResult ? feedback : isTarget ? "hint" : "idle";
@@ -62,10 +71,11 @@ export function PianoKeyboard({
               className={`white-key tone-${tone}`}
               data-testid={`key-${midi}`}
               data-hint={isTarget ? "true" : "false"}
+              data-hand={isBass ? "left" : isMelody && alsoMidi != null ? "right" : undefined}
               aria-label={midiToName(midi)}
               {...keyPointers(midi, onPlay, onRelease)}
             >
-              {isTarget ? <span className="hint-flag">this key</span> : null}
+              {isTarget ? <span className="hint-flag">{isBass ? alsoHintLabel : hintLabel}</span> : null}
               <span className="key-label">{midiToName(midi)}</span>
             </button>
           );
