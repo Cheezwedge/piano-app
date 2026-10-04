@@ -17,6 +17,12 @@ const REST: LessonNote = { midi: null, name: "Rest", finger: 0, duration: "rest"
 /** Porch Light — original neighbor-note tune. C major, no licensed melody. */
 const PORCH_LIGHT = [C, E, G, A, G, E, D, C];
 
+/** Steps from middle C through the G landmark and back. Each move is a neighbor. */
+const STAFF_STEPS = [C, D, E, F, G, A, G, F, E, D, C];
+
+/** Skip Home — original. Skips jump a note; steps fill the gaps. White keys only. */
+const SKIP_HOME = [C, E, D, F, E, G, F, A, G, B, A, C5, B, G, E, C];
+
 /** Quiet Clock — original rhythm walk. */
 const QUIET_CLOCK = [
   withDuration(C, "quarter"),
@@ -72,6 +78,39 @@ export const COURSE_UNITS: CourseUnit[] = [
         title: "Porch Light",
         blurb: "An original Home Keys tune using C E G A and the notes you already know.",
         notes: PORCH_LIGHT,
+      },
+    ],
+  },
+  {
+    id: "staff-reading",
+    courseId: "reading",
+    title: "Read the Staff",
+    subtitle: "Middle C to high C",
+    blurb: "Find middle C and the G on the second line, then step and skip. White keys only.",
+    keyboard: "treble",
+    rhythm: false,
+    reading: true,
+    stages: [
+      {
+        id: "demo",
+        kind: "demo",
+        title: "Two landmarks",
+        blurb: "Middle C sits on the little line under the staff. G sits on the second line. The treble clef curls around that G.",
+        notes: [C, G, C, G],
+      },
+      {
+        id: "guided",
+        kind: "guided",
+        title: "Steps",
+        blurb: "A step moves to the next note, line to space or space to line. The key stays dark. Read the staff. Show hint if you need the letter.",
+        notes: STAFF_STEPS,
+      },
+      {
+        id: "melody",
+        kind: "melody",
+        title: "Skip Home",
+        blurb: "A skip jumps over one note, from a line to the next line or a space to the next space. An original Home Keys tune.",
+        notes: SKIP_HOME,
       },
     ],
   },

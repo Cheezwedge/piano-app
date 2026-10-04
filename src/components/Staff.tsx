@@ -19,9 +19,11 @@ interface Props {
   note: LessonNote;
   feedback: FeedbackKind;
   showFinger: boolean;
+  /** When false, the letter stays off the staff so the child reads the notehead. */
+  showName?: boolean;
 }
 
-export function Staff({ note, feedback, showFinger }: Props) {
+export function Staff({ note, feedback, showFinger, showName = true }: Props) {
   const width = 440;
   const height = 230;
   const e4Y = 128;
@@ -48,7 +50,7 @@ export function Staff({ note, feedback, showFinger }: Props) {
 
   return (
     <div className="staff-wrap" data-testid="staff">
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Staff, target ${note.name}`}>
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={showName ? `Staff, target ${note.name}` : "Staff. Read the note."}>
         {[0, 1, 2, 3, 4].map((line) => (
           <line
             key={line}
@@ -89,10 +91,12 @@ export function Staff({ note, feedback, showFinger }: Props) {
             {note.hand === "left" ? `L${note.finger}` : note.finger}
           </text>
         ) : null}
-        <text x={x} y={214} textAnchor="middle" className="staff-name">
-          {note.hand === "left" ? `LH ${note.name}` : note.name}
-          {note.duration && note.duration !== "quarter" ? ` · ${note.duration}` : ""}
-        </text>
+        {showName ? (
+          <text x={x} y={214} textAnchor="middle" className="staff-name" data-testid="staff-name">
+            {note.hand === "left" ? `LH ${note.name}` : note.name}
+            {note.duration && note.duration !== "quarter" ? ` · ${note.duration}` : ""}
+          </text>
+        ) : null}
       </svg>
     </div>
   );

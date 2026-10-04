@@ -11,6 +11,7 @@ import { UNIT_ORDER } from "../data/courses";
 import { playableById } from "../data/playable";
 import { songById } from "../data/songs";
 import { classifyAttempt, shouldAdvance } from "../lib/practice";
+import { initialHintVisible, showReadingAnswer } from "../lib/reading";
 import {
   noteNeedsHold,
   onRhythmAttack,
@@ -70,6 +71,7 @@ export function LessonScreen() {
   const stage = unit.stages[Math.min(stageIndex, unit.stages.length - 1)];
   const current = stage.notes[Math.min(noteIndex, stage.notes.length - 1)];
   const isDemo = !complete && stage.kind === "demo";
+  const answerVisible = showReadingAnswer(Boolean(unit.reading), isDemo, hintVisible);
   const unlocked = fromLibrary
     ? isSongUnlocked(songById(unit.id)?.unlockAfterUnitId ?? "", unit.id, {
         stars: kid?.stageStars ?? {},
@@ -86,8 +88,9 @@ export function LessonScreen() {
   useEffect(() => {
     if (stageIndex >= unit.stages.length) return;
     const next = unit.stages[stageIndex];
-    hintRef.current = next.kind !== "melody";
-    setHintVisible(next.kind !== "melody");
+    const showHints = initialHintVisible(next.kind, Boolean(unit.reading));
+    hintRef.current = showHints;
+    setHintVisible(showHints);
     setNoteIndex(0);
     noteIndexRef.current = 0;
     setFeedback("idle");
@@ -104,13 +107,14 @@ export function LessonScreen() {
   }, [stageIndex, unit.id]);
 
   useEffect(() => {
+    if (unit.reading) return;
     if (stage.kind !== "melody" || hintVisible) return;
     const timer = window.setTimeout(() => {
       hintRef.current = true;
       setHintVisible(true);
     }, HINT_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [stage.kind, hintVisible, noteIndex]);
+  }, [stage.kind, hintVisible, noteIndex, unit.reading]);
 
   const finishUnit = () => {
     const result = completeUnit(unit.id, wrongsRef.current, scoredRef.current);
@@ -132,7 +136,7 @@ export function LessonScreen() {
     if (nextNote < stageNow.notes.length) {
       noteIndexRef.current = nextNote;
       setNoteIndex(nextNote);
-      const showHints = stageNow.kind !== "melody";
+      const showHints = initialHintVisible(stageNow.kind, Boolean(unit.reading));
       hintRef.current = showHints;
       setHintVisible(showHints);
       setFeedback("idle");
@@ -350,10 +354,17 @@ export function LessonScreen() {
       ) : null}
 
       <section className="lesson-stage">
-        <Staff note={current} feedback={feedback} showFinger={persist.showFingerNumbers} />
+        <Staff
+          note={current}
+          feedback={feedback}
+          showFinger={persist.showFingerNumbers && answerVisible}
+          showName={answerVisible}
+        />
         <div className="prompt">
-          <p className="prompt-kicker">{promptKicker(isDemo, isRest(current), holding, holdReady)}</p>
-          <h2 data-testid="target-note">{promptName(current)}</h2>
+          <p className="prompt-kicker">{promptKicker(isDemo, isRest(current), holding, holdReady, answerVisible)}</p>
+          <h2 data-testid="target-note" data-answer-visible={answerVisible ? "true" : "false"}>
+            {answerVisible ? promptName(current) : "Read the staff"}
+          </h2>
           <FeedbackBanner
             feedback={feedback}
             lastPlayed={lastPlayed}
@@ -361,6 +372,7 @@ export function LessonScreen() {
             holding={holding}
             holdReady={holdReady}
             shortHold={shortHold}
+            answerVisible={answerVisible}
           />
           {isDemo ? (
             <p className="status-line">Demo is playing through the speakers. Listening starts when you are ready.</p>
@@ -425,7 +437,7 @@ export function LessonScreen() {
             </button>
             <p className="muted">
               {noteIndex + 1} / {stage.notes.length}
-              {persist.showFingerNumbers && !isRest(current)
+              {persist.showFingerNumbers && answerVisible && !isRest(current)
                 ? ` · ${current.hand === "left" ? "LH" : "RH"} finger ${current.finger}`
                 : ""}
               {unit.rhythm && current.duration ? ` · ${current.duration}` : ""}
@@ -451,11 +463,18 @@ export function LessonScreen() {
   );
 }
 
-function promptKicker(demo: boolean, rest: boolean, holding: boolean, holdReady: boolean): string {
+function promptKicker(
+  demo: boolean,
+  rest: boolean,
+  holding: boolean,
+  holdReady: boolean,
+  answerVisible: boolean,
+): string {
   if (demo) return "Listen";
   if (holdReady) return "Let go";
   if (holding) return "Hold the beat";
   if (rest) return "Stay quiet";
+  if (!answerVisible) return "Read the staff";
   return "Play this note";
 }
 
@@ -471,6 +490,7 @@ function FeedbackBanner({
   holding,
   holdReady,
   shortHold,
+  answerVisible,
 }: {
   feedback: FeedbackKind;
   lastPlayed: number | null;
@@ -478,12 +498,16 @@ function FeedbackBanner({
   holding: boolean;
   holdReady: boolean;
   shortHold: boolean;
+  answerVisible: boolean;
 }) {
   if (holding && holdReady) {
     return <p className="banner hinted" data-testid="feedback-hold-ready">Good hold. Let go.</p>;
   }
   if (holding) return <p className="banner hinted" data-testid="feedback-holding">Keep holding through the beat.</p>;
   if (feedback === "idle" && rest) return <p className="banner idle">This count is a rest. Stay quiet.</p>;
+  if (feedback === "idle" && !answerVisible) {
+    return <p className="banner idle">Look at the staff, then play that key.</p>;
+  }
   if (feedback === "idle") return <p className="banner idle">Waiting for the matching key.</p>;
   const played = lastPlayed == null ? "" : midiToName(lastPlayed);
   if (feedback === "wrong" && rest) {

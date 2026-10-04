@@ -38,10 +38,13 @@ Original Home Keys material only. No licensed songs, Disney/pop tunes, or lookal
 | --- | --- | --- | --- |
 | 1 | **Home Steps** | Treble **C D E F G**, wait-for-correct | **Garden Walk** — C D E D E F E D C |
 | 2 | **Neighbor Notes** | A, B, and high C in C major position | **Porch Light** |
-| 3 | **Steady Beats** | Quarter, half, whole, and rest. Hold the key for the full value, then let go | **Quiet Clock** |
-| 4 | **Two Hands Hello** | Sequential left-hand C and G (open fifth), then a right-hand wave | **Low Door** |
+| 3 | **Read the Staff** | Middle C and the G on the second line, then steps and skips. White keys, C to C | **Skip Home** |
+| 4 | **Steady Beats** | Quarter, half, whole, and rest. Hold the key for the full value, then let go | **Quiet Clock** |
+| 5 | **Two Hands Hello** | Sequential left-hand C and G (open fifth), then a right-hand wave | **Low Door** |
 
 Each stage: a short tip / demo → guided practice (hints + wait) → the melody. The next stage unlocks only after the prior one is finished. A grown-up can **Unlock entire path** in settings (behind the PIN) for testing.
+
+**Read the Staff** opens after Neighbor Notes. The demo names two landmarks: middle C on the ledger line under the staff, and G on the second line. In **Steps** and **Skip Home** the key does not glow and the letter is hidden. The child reads the notehead and plays that white key. **Show hint** reveals the letter, the finger number, and the key. Practice still waits for the right note. This lesson uses only the white keys from middle C to high C. Finger numbers are the same as the rest of the path. Steady Beats still requires a full hold when a note has a length.
 
 **Steady Beats** is the rhythm lesson. A right pitch counts only after it is held for the whole note and then released. A quarter is one count, a half is two, and a whole is four (about 0.7 seconds per count). Letting go early stays on that note and shows the same coral “try again” as a wrong key. The lesson waits until the pitch is right and the hold is long enough. Rests are still one quiet count. There is no metronome.
 

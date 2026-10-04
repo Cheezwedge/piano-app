@@ -54,6 +54,8 @@ export interface CourseUnit {
   blurb: string;
   keyboard: "treble" | "wide";
   rhythm: boolean;
+  /** Practice hides the letter and the glowing key so the child reads the staff. */
+  reading?: boolean;
   stages: LessonStage[];
 }
 
