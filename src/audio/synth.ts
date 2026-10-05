@@ -70,6 +70,23 @@ export function endAllHeldTonesExcept(keepMidi: number | null): void {
   }
 }
 
+/** A quiet tick. It marks the beat and is not a piano note. */
+export function playPulse(): void {
+  const ctx = getAudioContext();
+  const start = ctx.currentTime;
+  const oscillator = ctx.createOscillator();
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(740, start);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(0.035, start + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.07);
+  oscillator.connect(gain);
+  gain.connect(ctx.destination);
+  oscillator.start(start);
+  oscillator.stop(start + 0.08);
+}
+
 export function playMidiNote(midi: number, duration = 0.55, when = 0, peak = 0.22): void {
   const ctx = getAudioContext();
   const start = Math.max(ctx.currentTime, ctx.currentTime + when);

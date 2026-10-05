@@ -71,6 +71,8 @@ export interface CourseUnit {
   rhythm: boolean;
   /** Practice hides the letter and the glowing key so the child reads the staff. */
   reading?: boolean;
+  /** A quiet pulse. The note counts only when the pitch is close to the beat. */
+  timing?: boolean;
   stages: LessonStage[];
 }
 

@@ -65,6 +65,9 @@ function marked(source: LessonNote, dynamic: "soft" | "loud"): LessonNote {
 const HEAR_SOFT_LOUD = [marked(C, "soft"), marked(C, "loud"), marked(E, "soft"), marked(G, "loud")];
 const QUIET_STEP = [marked(C, "soft"), marked(D, "loud"), marked(E, "soft"), marked(C, "loud")];
 
+/** Pulse Walk — original. Right hand, white keys, one note on each beat. */
+const PULSE_WALK = [C, D, E, C];
+
 /** Steps down from the bass F line to low C and back. Each move is a neighbor. */
 const BASS_STEPS = [F3, G3, F3, E3, D3, C3, D3, E3, F3];
 
@@ -305,6 +308,39 @@ export const COURSE_UNITS: CourseUnit[] = [
         title: "Quiet Step",
         blurb: "An original right-hand walk. Play each note soft or loud, the way it says. The other loudness does not pass.",
         notes: QUIET_STEP,
+      },
+    ],
+  },
+  {
+    id: "on-the-beat",
+    courseId: "timing",
+    title: "On the Beat",
+    subtitle: "Right hand only",
+    blurb: "A quiet pulse marks the beat. Play the right key when you hear it.",
+    keyboard: "treble",
+    rhythm: false,
+    timing: true,
+    stages: [
+      {
+        id: "demo",
+        kind: "demo",
+        title: "Hear the pulse",
+        blurb: "Listen for the quiet pulse. Each note sounds with that beat.",
+        notes: PULSE_WALK,
+      },
+      {
+        id: "guided",
+        kind: "guided",
+        title: "Play with it",
+        blurb: "Play the glowing key close to the pulse. Too early or too late does not count. The lesson waits.",
+        notes: PULSE_WALK,
+      },
+      {
+        id: "melody",
+        kind: "melody",
+        title: "Pulse Walk",
+        blurb: "An original right-hand walk. C, D, E, then C again. Each one belongs on the beat.",
+        notes: PULSE_WALK,
       },
     ],
   },

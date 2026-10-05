@@ -475,6 +475,27 @@ input:not([type="checkbox"]) {
   background: #e7f4ee;
 }
 
+.beat-cue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.beat-pulse {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #d9d0c2;
+  flex: 0 0 14px;
+}
+
+.beat-pulse.on {
+  background: var(--teal);
+}
+
 .prompt-kicker {
   text-transform: uppercase;
   letter-spacing: 0.08em;

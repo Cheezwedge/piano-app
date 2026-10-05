@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { durationBeats, midiToName } from "../audio/notes";
-import { beginHeldTone, endAllHeldTones, endAllHeldTonesExcept, endHeldTone, playMidiNote, resumeAudio } from "../audio/synth";
+import { beginHeldTone, endAllHeldTones, endAllHeldTonesExcept, endHeldTone, playMidiNote, playPulse, resumeAudio } from "../audio/synth";
 import { useNoteInput } from "../audio/useNoteInput";
 import { Celebration } from "../components/Celebration";
 import { ListeningStatus } from "../components/ListeningStatus";
@@ -10,6 +10,7 @@ import { Staff } from "../components/Staff";
 import { UNIT_ORDER } from "../data/courses";
 import { playableById } from "../data/playable";
 import { songById } from "../data/songs";
+import { PULSE_BEAT_MS, timingAgainstBeat, type BeatTiming } from "../lib/beat";
 import { dynamicFromVelocity, gainForDynamic, judgeDynamic, velocityForScreen, type Dynamic } from "../lib/dynamics";
 import { classifyAttempt, shouldAdvance } from "../lib/practice";
 import { hiddenReadingKicker, initialHintVisible, showReadingAnswer } from "../lib/reading";
@@ -66,6 +67,8 @@ export function LessonScreen() {
   const [holdReady, setHoldReady] = useState(false);
   const [shortHold, setShortHold] = useState(false);
   const [dynamicMiss, setDynamicMiss] = useState<Dynamic | null>(null);
+  const [timingMiss, setTimingMiss] = useState<Exclude<BeatTiming, "on-time"> | null>(null);
+  const [pulseOn, setPulseOn] = useState(false);
   const [chosenDynamic, setChosenDynamic] = useState<Dynamic | null>(null);
   const [togetherPhase, setTogetherPhase] = useState<TogetherPhase | null>(null);
   const [restNonce, setRestNonce] = useState(0);
@@ -78,6 +81,7 @@ export function LessonScreen() {
   const scoredRef = useRef(0);
   const holdRef = useRef<RhythmHold | null>(null);
   const togetherRef = useRef<TogetherSession>(emptyTogether());
+  const beatAnchorRef = useRef(0);
   const holdReadyTimer = useRef(0);
   const advanceTimer = useRef(0);
 
@@ -124,6 +128,7 @@ export function LessonScreen() {
     setHoldReady(false);
     setShortHold(false);
     setDynamicMiss(null);
+    setTimingMiss(null);
     setChosenDynamic(null);
     holdRef.current = null;
     togetherRef.current = emptyTogether();
@@ -145,6 +150,36 @@ export function LessonScreen() {
     return () => window.clearTimeout(timer);
   }, [stage.kind, hintVisible, noteIndex, unit.reading]);
 
+  useEffect(() => {
+    if (!unit.timing || isDemo || complete) return;
+    let cancelled = false;
+    const anchor = performance.now();
+    beatAnchorRef.current = anchor;
+    let timer = 0;
+    let flash = 0;
+    const tick = () => {
+      if (cancelled) return;
+      playPulse();
+      setPulseOn(true);
+      window.clearTimeout(flash);
+      flash = window.setTimeout(() => {
+        if (!cancelled) setPulseOn(false);
+      }, 140);
+      const elapsed = performance.now() - anchor;
+      const next = (Math.floor(elapsed / PULSE_BEAT_MS) + 1) * PULSE_BEAT_MS;
+      timer = window.setTimeout(tick, Math.max(0, anchor + next - performance.now()));
+    };
+    void resumeAudio();
+    tick();
+    return () => {
+      cancelled = true;
+      beatAnchorRef.current = 0;
+      window.clearTimeout(timer);
+      window.clearTimeout(flash);
+      setPulseOn(false);
+    };
+  }, [unit.timing, unit.id, isDemo, complete, stageIndex]);
+
   const finishUnit = () => {
     const result = completeUnit(unit.id, wrongsRef.current, scoredRef.current);
     setAward(result);
@@ -162,6 +197,7 @@ export function LessonScreen() {
     setHoldReady(false);
     setShortHold(false);
     setDynamicMiss(null);
+    setTimingMiss(null);
     setChosenDynamic(null);
     const upcoming = nextNote < stageNow.notes.length ? stageNow.notes[nextNote] : undefined;
     const carried = carryTogetherBass(togetherRef.current, upcoming?.together?.midi ?? null);
@@ -217,7 +253,7 @@ export function LessonScreen() {
     }, ADVANCE_MS);
   };
 
-  const handleNoteOn = (midi: number, source: string, velocity?: number) => {
+  const handleNoteOn = (midi: number, source: string, velocity?: number, at = performance.now()) => {
     if (isDemo || lockedRef.current) return;
     const target = unit.stages[stageIndexRef.current]?.notes[noteIndexRef.current];
     if (!target) return;
@@ -290,6 +326,22 @@ export function LessonScreen() {
       return;
     }
 
+    if (unit.timing && target.midi != null && midi === target.midi && beatAnchorRef.current > 0) {
+      const timing = timingAgainstBeat(at, beatAnchorRef.current);
+      if (timing !== "on-time") {
+        playMidiNote(midi, 0.35);
+        wrongsRef.current += 1;
+        setShortHold(false);
+        setHolding(false);
+        setHoldReady(false);
+        holdRef.current = null;
+        setDynamicMiss(null);
+        setTimingMiss(timing);
+        setFeedback("wrong");
+        return;
+      }
+    }
+
     const playedDynamic = velocity == null ? null : dynamicFromVelocity(velocity);
     const dynamicPeak = target.dynamic ? gainForDynamic(playedDynamic) : undefined;
     if (
@@ -314,6 +366,7 @@ export function LessonScreen() {
       setFeedback(kind);
       setShortHold(false);
       setDynamicMiss(null);
+      setTimingMiss(null);
       if (!shouldAdvance(kind)) {
         wrongsRef.current += 1;
         return;
@@ -438,7 +491,7 @@ export function LessonScreen() {
   const { mic, midi, retryMic } = useNoteInput({
     enabled: !isDemo && !complete,
     calibrationCents: persist.calibrationCents,
-    onNote: (note) => handleNoteOn(note.midi, note.source, note.velocity),
+    onNote: (note) => handleNoteOn(note.midi, note.source, note.velocity, note.at),
     onRelease: (note) => handleNoteOff(note.midi, note.source, note.at),
   });
 
@@ -464,10 +517,11 @@ export function LessonScreen() {
         beginHeldTone(item.together.midi);
         bassSounding = item.together.midi;
       }
+      if (unit.timing) playPulse();
       if (item.midi != null && item.duration !== "rest") {
         playMidiNote(item.midi, 0.6, 0, item.dynamic ? gainForDynamic(item.dynamic) : undefined);
       }
-      await wait(durationBeats(item.duration) * 720);
+      await wait(unit.timing ? PULSE_BEAT_MS : durationBeats(item.duration) * 720);
     }
     endAllHeldTones();
     setDemoPlaying(false);
@@ -583,7 +637,14 @@ export function LessonScreen() {
             answerVisible={answerVisible}
             togetherPhase={shownTogetherPhase}
             dynamicMiss={dynamicMiss}
+            timingMiss={timingMiss}
           />
+          {unit.timing ? (
+            <p className="beat-cue" data-testid="beat-cue">
+              <span className={pulseOn ? "beat-pulse on" : "beat-pulse"} data-testid="beat-pulse" data-on={pulseOn ? "true" : "false"} />
+              With the beat
+            </p>
+          ) : null}
           {current.dynamic ? (
             <p className="dynamic-cue" data-testid="dynamic-cue" data-dynamic={current.dynamic}>
               {current.dynamic === "soft" ? "Soft" : "Loud"}
@@ -656,6 +717,7 @@ export function LessonScreen() {
               data-testid="ready-practice"
               disabled={demoPlaying}
               onClick={() => {
+                void resumeAudio();
                 stageIndexRef.current = 1;
                 setStageIndex(1);
               }}
@@ -743,6 +805,7 @@ function FeedbackBanner({
   answerVisible,
   togetherPhase,
   dynamicMiss,
+  timingMiss,
 }: {
   feedback: FeedbackKind;
   lastPlayed: number | null;
@@ -753,8 +816,16 @@ function FeedbackBanner({
   answerVisible: boolean;
   togetherPhase: TogetherPhase | null;
   dynamicMiss: Dynamic | null;
+  timingMiss: Exclude<BeatTiming, "on-time"> | null;
 }) {
   const played = lastPlayed == null ? "" : midiToName(lastPlayed);
+  if (feedback === "wrong" && timingMiss) {
+    return (
+      <p className="banner wrong" data-testid="feedback-wrong">
+        Try again · {timingMiss}.
+      </p>
+    );
+  }
   if (feedback === "wrong" && dynamicMiss) {
     return (
       <p className="banner wrong" data-testid="feedback-wrong">

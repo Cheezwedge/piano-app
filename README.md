@@ -2,7 +2,7 @@
 
 A tablet-first piano primer for kids. Home Keys is an original product. It is inspired by the *idea* of guided piano practice (listen, see the staff, play the matching key) and does **not** copy Simply Piano — or any other commercial app — assets, branding, songs, lesson scripts, UI chrome, or course content.
 
-Kids follow a short **course path** — notes, neighbors, reading the staff, the bass clef, rhythm, a light two-hand hello, both hands at once, then soft and loud. After those early stages they can open a **song library** of free-to-use classical and folk teaching pieces. Each stage waits for the matching key. Parents keep a PIN on settings, profile switching, progress resets, and early exit. There are no ads, purchases, social accounts, or store links.
+Kids follow a short **course path** — notes, neighbors, reading the staff, the bass clef, rhythm, a light two-hand hello, both hands at once, soft and loud, then playing on a quiet pulse. After those early stages they can open a **song library** of free-to-use classical and folk teaching pieces. Each stage waits for the matching key. Parents keep a PIN on settings, profile switching, progress resets, and early exit. There are no ads, purchases, social accounts, or store links.
 
 ## Run locally
 
@@ -44,6 +44,7 @@ Original Home Keys material only. No licensed songs, Disney/pop tunes, or lookal
 | 6 | **Two Hands Hello** | Sequential left-hand C and G (open fifth), then a right-hand wave. One hand at a time | **Low Door** |
 | 7 | **Both at Once** | Left hand holds low C while the right hand plays C E G E. Both hands sound together | **Still Steps** |
 | 8 | **Soft and Loud** | Right hand only. A quiet sound and a strong sound. The wrong loudness does not pass | **Quiet Step** |
+| 9 | **On the Beat** | Right hand only. A quiet pulse. The note counts when it is close to the beat | **Pulse Walk** |
 
 Each stage: a short tip / demo → guided practice (hints + wait) → the melody. The next stage unlocks only after the prior one is finished. A grown-up can **Unlock entire path** in settings (behind the PIN) for testing.
 
@@ -54,6 +55,8 @@ Each stage: a short tip / demo → guided practice (hints + wait) → the melody
 **Both at Once** opens after Two Hands Hello. Two Hands Hello stays turn-taking: left, then right, never at the same time. Both at Once is the first time both hands play together. The left hand holds low C. The right hand plays C, E, G, E while that C stays down. Each staff is labeled, and the glowing keys say LH and RH. Practice waits until both keys are down. The right-hand note still has to be held for its beat, then released. Letting go early stays on that note. One hand alone does not count. Still Steps is an original pattern, white keys only.
 
 **Soft and Loud** opens after Both at Once. It is one right hand, white keys only. The demo plays a quiet C and a strong C so the child can hear the difference. In practice the word says **Soft** or **Loud**. Tap that word, then play the key. The app plays a quiet sound or a strong sound. A loud sound does not pass when the note says soft, and a soft sound does not pass when the note says loud. The lesson stays and shows the same coral “try again.” A MIDI keyboard uses how hard the key was pressed. There is no volume meter.
+
+**On the Beat** opens after Soft and Loud. It is the only step that waits for the beat. A quiet pulse sounds, and the child plays the right key close to that pulse. A right note that is clearly early or late stays put and says **early** or **late**. A right note on the pulse moves on. Earlier lessons still wait for the correct note whenever the child plays it. Steady Beats still asks for a full hold when a note has a length. On-screen keys and a MIDI keyboard both follow the same pulse. Pulse Walk is four white keys in the right hand: C D E C.
 
 **Steady Beats** is the rhythm lesson. A right pitch counts only after it is held for the whole note and then released. A quarter is one count, a half is two, and a whole is four (about 0.7 seconds per count). Letting go early stays on that note and shows the same coral “try again” as a wrong key. The lesson waits until the pitch is right and the hold is long enough. Rests are still one quiet count. There is no metronome.
 

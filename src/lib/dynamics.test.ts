@@ -52,8 +52,8 @@ describe("soft and loud course step", () => {
   const whites = new Set([60, 62, 64, 65, 67]);
 
   it("adds one right-hand step after Both at Once and leaves earlier units alone", () => {
-    expect(ids.at(-1)).toBe("soft-loud");
-    expect(ids.at(-2)).toBe("hands-together");
+    expect(ids.at(-2)).toBe("soft-loud");
+    expect(ids.at(-3)).toBe("hands-together");
     expect(unit?.rhythm).toBe(false);
     expect(unit?.keyboard).toBe("treble");
     expect(unit?.reading).toBeUndefined();
