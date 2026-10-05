@@ -174,8 +174,8 @@ export function HomeScreen() {
       <section className="song-library-preview" data-testid="song-library-preview">
         <h2>Song library</h2>
         <p className="muted">
-          Free-to-use classical and folk tunes. Finish a course stage to open matching songs — no grown-up PIN
-          to play unlocked ones.
+          Free-to-use classical and folk tunes. Home Steps opens two songs first. The rest of that group
+          opens after those two are finished — no grown-up PIN to play an unlocked song.
         </p>
         {previewSongs.length ? (
           <ul className="preview-songs">

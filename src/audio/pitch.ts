@@ -1,5 +1,6 @@
 import { PitchDetector } from "pitchy";
 import { freqToMidi, isConfidentPitch } from "./notes";
+import { createPitchGate, stepPitchGate } from "./pitchGate";
 
 export interface PitchHit {
   midi: number;
@@ -10,6 +11,8 @@ export interface PitchHit {
 interface WatchOptions {
   calibrationCents: number;
   onNote: (hit: PitchHit) => void;
+  /** Fired when a sounding pitch has been quiet long enough to count as released. */
+  onRelease?: (midi: number, at: number) => void;
 }
 
 export async function startMicWatch(options: WatchOptions): Promise<() => void> {
@@ -31,9 +34,8 @@ export async function startMicWatch(options: WatchOptions): Promise<() => void> 
   const detector = PitchDetector.forFloat32Array(analyser.fftSize);
   const input = new Float32Array(detector.inputLength);
 
-  let lastMidi: number | null = null;
-  let stableCount = 0;
-  let armed = true;
+  let gate = createPitchGate();
+  let silenceStartedAt = 0;
   let raf = 0;
   let stopped = false;
 
@@ -42,25 +44,23 @@ export async function startMicWatch(options: WatchOptions): Promise<() => void> 
     analyser.getFloatTimeDomainData(input);
     const [frequency, clarity] = detector.findPitch(input, ctx.sampleRate);
 
+    let heard: number | null = null;
     if (frequency && clarity > 0.8) {
       const midi = freqToMidi(frequency, options.calibrationCents);
       if (isConfidentPitch(frequency, clarity, midi, options.calibrationCents)) {
-        if (midi === lastMidi) {
-          stableCount += 1;
-        } else {
-          lastMidi = midi;
-          stableCount = 1;
-          armed = true;
-        }
-        if (armed && stableCount >= 3) {
-          armed = false;
-          options.onNote({ midi, frequency, clarity });
-        }
+        heard = midi;
       }
-    } else {
-      lastMidi = null;
-      stableCount = 0;
-      armed = true;
+    }
+
+    const step = stepPitchGate(gate, heard);
+    gate = step.state;
+    if (step.silenceStarted) silenceStartedAt = performance.now();
+    if (step.noteOff != null) {
+      const at = step.releasedBySilence ? silenceStartedAt : performance.now();
+      options.onRelease?.(step.noteOff, at);
+    }
+    if (step.noteOn != null && frequency) {
+      options.onNote({ midi: step.noteOn, frequency, clarity });
     }
 
     raf = window.setTimeout(tick, 40);

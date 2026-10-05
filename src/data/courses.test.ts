@@ -11,12 +11,17 @@ describe("course path", () => {
     expect(LESSON_1.stages[2].title).toBe("Garden Walk");
   });
 
-  it("uses original titles and four unlockable units", () => {
+  it("uses original titles and nine unlockable units", () => {
     expect(COURSE_UNITS.map((unit) => unit.id)).toEqual([
       "basics-five",
       "neighbors-abc",
+      "staff-reading",
+      "bass-clef",
       "rhythm-beats",
       "twohands-hello",
+      "hands-together",
+      "soft-loud",
+      "on-the-beat",
     ]);
     for (const unit of COURSE_UNITS) {
       expect(unit.title).not.toMatch(BANNED);
@@ -26,7 +31,7 @@ describe("course path", () => {
   });
 
   it("keeps two-hand notes sequential and age-small", () => {
-    const melody = COURSE_UNITS[3].stages[2].notes;
+    const melody = COURSE_UNITS.find((unit) => unit.id === "twohands-hello")?.stages[2].notes ?? [];
     expect(melody.length).toBeLessThanOrEqual(10);
     expect(melody.some((item) => item.hand === "left")).toBe(true);
     expect(melody.some((item) => item.midi === 48)).toBe(true);

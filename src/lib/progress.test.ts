@@ -71,14 +71,39 @@ describe("song library unlocks", () => {
     parentUnlockedSongs: [] as string[],
   };
 
-  it("opens after the matching course stage is finished", () => {
-    expect(isSongUnlocked("basics-five", "song-ode-to-joy", base)).toBe(false);
-    expect(
-      isSongUnlocked("basics-five", "song-ode-to-joy", { ...base, stars: { "basics-five": 2 } }),
-    ).toBe(true);
+  it("opens the first two Home Steps songs before the rest of that band", () => {
+    expect(isSongUnlocked("basics-five", "song-hot-cross-buns", base)).toBe(false);
+    const afterSteps = { ...base, stars: { "basics-five": 2 } };
+    expect(isSongUnlocked("basics-five", "song-hot-cross-buns", afterSteps)).toBe(true);
+    expect(isSongUnlocked("basics-five", "song-mary-lamb", afterSteps)).toBe(true);
+    expect(isSongUnlocked("basics-five", "song-ode-to-joy", afterSteps)).toBe(false);
+    expect(isSongUnlocked("basics-five", "song-au-clair", afterSteps)).toBe(false);
+    expect(isSongUnlocked("basics-five", "song-lightly-row", afterSteps)).toBe(false);
+    expect(isSongUnlocked("basics-five", "song-spring", afterSteps)).toBe(false);
+
+    const oneFolk = { ...base, stars: { "basics-five": 2, "song-hot-cross-buns": 3 } };
+    expect(isSongUnlocked("basics-five", "song-ode-to-joy", oneFolk)).toBe(false);
+
+    const bothFolk = {
+      ...base,
+      stars: { "basics-five": 1, "song-hot-cross-buns": 2, "song-mary-lamb": 1 },
+    };
+    expect(isSongUnlocked("basics-five", "song-ode-to-joy", bothFolk)).toBe(true);
+    expect(isSongUnlocked("basics-five", "song-spring", bothFolk)).toBe(true);
+    expect(isSongUnlocked("basics-five", "song-au-clair", bothFolk)).toBe(true);
+    expect(isSongUnlocked("basics-five", "song-lightly-row", bothFolk)).toBe(true);
+  });
+
+  it("still opens later bands from their course stage alone", () => {
     expect(
       isSongUnlocked("neighbors-abc", "song-twinkle", { ...base, stars: { "basics-five": 3 } }),
     ).toBe(false);
+    expect(
+      isSongUnlocked("neighbors-abc", "song-twinkle", { ...base, stars: { "neighbors-abc": 2 } }),
+    ).toBe(true);
+    expect(
+      isSongUnlocked("rhythm-beats", "song-canon", { ...base, stars: { "rhythm-beats": 1 } }),
+    ).toBe(true);
   });
 
   it("lets a grown-up unlock one song or the whole library", () => {
@@ -90,5 +115,12 @@ describe("song library unlocks", () => {
     ).toBe(true);
     expect(isSongUnlocked("rhythm-beats", "song-canon", { ...base, libraryUnlocked: true })).toBe(true);
     expect(isSongUnlocked("rhythm-beats", "song-canon", { ...base, pathUnlocked: true })).toBe(true);
+    expect(
+      isSongUnlocked("basics-five", "song-ode-to-joy", {
+        ...base,
+        stars: { "basics-five": 2 },
+        parentUnlockedSongs: ["song-ode-to-joy"],
+      }),
+    ).toBe(true);
   });
 });

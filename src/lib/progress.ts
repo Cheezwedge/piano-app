@@ -1,3 +1,4 @@
+import { songById } from "../data/songs";
 import type { KidProfile } from "../types";
 import { newlyUnlocked, rewardsForLevel } from "./rewards";
 
@@ -72,7 +73,9 @@ export function isSongUnlocked(
 ): boolean {
   if (options.pathUnlocked || options.libraryUnlocked) return true;
   if (options.parentUnlockedSongs.includes(songId)) return true;
-  return (options.stars[unlockAfterUnitId] ?? 0) > 0;
+  if ((options.stars[unlockAfterUnitId] ?? 0) <= 0) return false;
+  const gates = songById(songId)?.unlockAfterSongIds ?? [];
+  return gates.every((id) => (options.stars[id] ?? 0) > 0);
 }
 
 export interface StageAward {
