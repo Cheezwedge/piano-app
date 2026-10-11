@@ -133,13 +133,14 @@ Home Keys listens on three paths at once during practice. The lesson chrome show
 | Off | Listening is not running (demo stage, or lesson not started). |
 | Starting… | Permission / device setup in progress. |
 | Calibrating… | Grown-up settings → Listen for middle C. |
-| Listening | Ready. MIDI also names the plugged-in keyboard when it can. |
-| Heard C4 (etc.) | A note was just detected on that path. |
-| Error | Mic permission blocked, or Web MIDI missing / failed. Practice shows **Allow microphone** so the kid (or grown-up) can retry the browser prompt. MIDI and on-screen keys still work. |
+| Listening | Mic is ready. |
+| Connected · name | A USB MIDI keyboard is connected. The pill shows the device name. Unplugging updates this without a reload. |
+| Heard C4 (etc.) | A note was just detected on that path. The MIDI pill then returns to the device name. |
+| Error | Mic permission blocked, or Web MIDI missing / no keyboard. Practice shows **Allow microphone** when the mic is blocked. If MIDI is missing (including iPad Safari) or no keyboard is plugged in, the page says to use the microphone or the on-screen keys. |
 
 | Input | How it works | Limits |
 | --- | --- | --- |
-| **Web MIDI** | `navigator.requestMIDIAccess` — note-on events map 1:1 to piano keys. Best accuracy. | Safari on iPad / iOS generally has **no Web MIDI**. Use Chrome on a computer or Android, or a browser that implements the API. The page must be `localhost` or HTTPS. |
+| **Web MIDI** | `navigator.requestMIDIAccess` — note-on events map 1:1 to piano keys. Note-on with velocity 0 counts as note-off. Plugging or unplugging updates the pill through `onstatechange`, with no reload. | Safari on iPad / iOS generally has **no Web MIDI**. That is expected. Use the microphone or the on-screen keys. Desktop Chrome or Edge on `localhost` or HTTPS can use a USB keyboard. |
 | **Microphone** | [Pitchy](https://github.com/ianprime0509/pitchy) (YIN) on the Web Audio API. Play a real acoustic or digital piano into the mic. Calibrate with **Listen for middle C** so a slightly sharp/flat room piano still maps to C4. | Rooms are noisy. Soft notes, pedals, and overlapping tones confuse pitch detection. Headphones can leak. iOS will prompt for mic permission. This MVP prefers a clear, single note held for a moment over studio-grade DSP. |
 | **On-screen keyboard** | Large C4–C5 keys, with the target key highlighted. Useful on a tablet while you set up, and for automated tests. | This is a fallback, not a replacement for a real keyboard. |
 
