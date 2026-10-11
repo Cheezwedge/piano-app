@@ -44,6 +44,15 @@ export function showReadingAnswer(reading: boolean, isDemo: boolean, hintVisible
   return hintVisible;
 }
 
+/**
+ * Finger-number lessons print 1–5 on the staff on purpose.
+ * Other lessons still follow the grown-up checkbox, and only after the letter is shown.
+ */
+export function showStaffFinger(settingOn: boolean, answerVisible: boolean, fingersOnStaff: boolean): boolean {
+  if (fingersOnStaff) return true;
+  return settingOn && answerVisible;
+}
+
 /** While the letter is hidden, name the hand without naming the pitch. */
 export function hiddenReadingKicker(hand: "left" | "right" | undefined): string {
   return hand === "left" ? "Left hand" : "Read the staff";

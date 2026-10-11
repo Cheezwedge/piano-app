@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { COURSE_UNITS } from "../data/courses";
 import { staffStepsFromE4 } from "../components/Staff";
+import { isUnitUnlocked } from "./progress";
 import {
   MIDDLE_C_MIDI,
   TREBLE_G_MIDI,
@@ -10,6 +11,7 @@ import {
   isSkip,
   isStep,
   showReadingAnswer,
+  showStaffFinger,
 } from "./reading";
 
 describe("one-octave staff reading", () => {
@@ -140,5 +142,59 @@ describe("bass clef, left hand only", () => {
       "right",
       "left",
     ]);
+  });
+});
+
+const FIVE_FINGER: Record<number, number> = { 60: 1, 62: 2, 64: 3, 65: 4, 67: 5 };
+
+describe("five-finger steps and skips", () => {
+  const unit = COURSE_UNITS.find((item) => item.id === "finger-steps");
+  const order = COURSE_UNITS.map((item) => item.id);
+
+  it("opens after the rest of the path, the same way other units do", () => {
+    expect(order.at(-1)).toBe("finger-steps");
+    expect(order.at(-2)).toBe("on-the-beat");
+    expect(isUnitUnlocked("finger-steps", order, {}, false)).toBe(false);
+    expect(isUnitUnlocked("finger-steps", order, { "staff-reading": 3 }, false)).toBe(false);
+    expect(isUnitUnlocked("finger-steps", order, { "on-the-beat": 1 }, false)).toBe(true);
+    expect(isUnitUnlocked("finger-steps", order, {}, true)).toBe(true);
+  });
+
+  it("asks for a step and a skip by sight, with finger numbers on the staff", () => {
+    expect(unit?.reading).toBe(true);
+    expect(unit?.fingersOnStaff).toBe(true);
+    expect(unit?.rhythm).toBe(false);
+    expect(unit?.keyboard).toBe("treble");
+    expect(unit?.stages.map((stage) => stage.kind)).toEqual(["demo", "guided", "melody"]);
+    expect(unit?.stages[2].title).toBe("Thumb Path");
+
+    const guided = (unit?.stages[1].notes ?? []).map((note) => note.midi as number);
+    const melody = (unit?.stages[2].notes ?? []).map((note) => note.midi as number);
+    for (const midis of [guided, melody]) {
+      const moves = midis.slice(1).map((midi, index) => staffDistanceSafe(midis[index], midi));
+      expect(moves.some((distance) => distance === 1)).toBe(true);
+      expect(moves.some((distance) => distance === 2)).toBe(true);
+      expect(moves.every((distance) => distance === 1 || distance === 2)).toBe(true);
+    }
+
+    expect(showStaffFinger(false, false, true)).toBe(true);
+    expect(showStaffFinger(true, false, false)).toBe(false);
+    expect(showReadingAnswer(true, false, false)).toBe(false);
+    expect(initialHintVisible("guided", true)).toBe(false);
+    expect(initialHintVisible("melody", true)).toBe(false);
+  });
+
+  it("stays on right-hand white keys from middle C to G, fingers 1 through 5", () => {
+    for (const stage of unit?.stages ?? []) {
+      for (const note of stage.notes) {
+        expect(note.hand ?? "right").toBe("right");
+        expect(note.together).toBeUndefined();
+        expect(note.dynamic).toBeUndefined();
+        expect(isOctaveWhiteKey(note.midi)).toBe(true);
+        expect(FIVE_FINGER[note.midi as number]).toBe(note.finger);
+        expect(note.finger).toBeGreaterThanOrEqual(1);
+        expect(note.finger).toBeLessThanOrEqual(5);
+      }
+    }
   });
 });
