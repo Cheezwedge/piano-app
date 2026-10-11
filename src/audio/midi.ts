@@ -15,8 +15,8 @@ export const MIDI_UNSUPPORTED_DETAIL = "Not in this browser";
 /** Short pill text when the API works but nothing is plugged in. */
 export const MIDI_NO_DEVICE_DETAIL = "No keyboard connected";
 
-/** Short pill text when the browser refuses the MIDI prompt. */
-export const MIDI_BLOCKED_DETAIL = "MIDI was blocked";
+/** Short pill text when the browser refuses the MIDI prompt. The pill already says MIDI. */
+export const MIDI_BLOCKED_DETAIL = "Access blocked";
 
 /** Note-on with velocity, or note-off (including note-on velocity 0). */
 export function parseMidiMessage(data: Uint8Array | number[]): { kind: MidiMessageKind; midi: number; velocity: number } | null {
