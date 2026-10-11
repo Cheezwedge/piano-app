@@ -3,6 +3,54 @@ export const PIN_UNLOCK_MS = 2 * 60 * 1000;
 export const PBKDF2_ITERATIONS = 100_000;
 export const PIN_KDF = "pbkdf2-sha256-100000";
 
+export const INSECURE_PIN_MESSAGE =
+  "Home Keys can save a PIN only on a secure page. Open this app over https, then tap Save PIN again.";
+
+/** Thrown when Web Crypto is missing, as on plain http. The PIN is not hashed another way. */
+export class InsecurePinError extends Error {
+  constructor() {
+    super(INSECURE_PIN_MESSAGE);
+    this.name = "InsecurePinError";
+  }
+}
+
+export function readPinSubtle(): SubtleCrypto | undefined {
+  try {
+    return globalThis.crypto?.subtle;
+  } catch {
+    return undefined;
+  }
+}
+
+export function requirePinSubtle(subtle: SubtleCrypto | undefined): SubtleCrypto {
+  if (
+    !subtle ||
+    typeof subtle.importKey !== "function" ||
+    typeof subtle.deriveBits !== "function" ||
+    typeof subtle.digest !== "function"
+  ) {
+    throw new InsecurePinError();
+  }
+  return subtle;
+}
+
+function rethrowPinCrypto(error: unknown): never {
+  if (error instanceof InsecurePinError) throw error;
+  if (error instanceof DOMException && (error.name === "SecurityError" || error.name === "NotSupportedError")) {
+    throw new InsecurePinError();
+  }
+  throw error;
+}
+
+/** Message for the Save PIN button. A missing Web Crypto API never becomes a weaker hash. */
+export function savePinErrorMessage(error: unknown): string {
+  if (error instanceof InsecurePinError) return error.message;
+  if (error instanceof DOMException && (error.name === "SecurityError" || error.name === "NotSupportedError")) {
+    return INSECURE_PIN_MESSAGE;
+  }
+  return "The PIN could not be saved. Try again.";
+}
+
 const LEGACY_PREFIX = "home-keys-pin-v1:";
 
 export type PinResult =
@@ -76,9 +124,14 @@ export function mismatchMessage(failedAttemptsAfter: number): string {
 }
 
 async function sha256Hex(text: string): Promise<string> {
-  const data = new TextEncoder().encode(text);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return toHex(digest);
+  const subtle = requirePinSubtle(readPinSubtle());
+  try {
+    const data = new TextEncoder().encode(text);
+    const digest = await subtle.digest("SHA-256", data);
+    return toHex(digest);
+  } catch (error) {
+    rethrowPinCrypto(error);
+  }
 }
 
 export async function legacyHashPin(pin: string): Promise<string> {
@@ -88,27 +141,33 @@ export async function legacyHashPin(pin: string): Promise<string> {
 
 export async function derivePinHash(pin: string, saltHex: string): Promise<string> {
   if (!isValidPin(pin)) throw new Error("PIN must be 4 to 6 digits");
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(pin),
-    "PBKDF2",
-    false,
-    ["deriveBits"],
-  );
-  const bits = await crypto.subtle.deriveBits(
-    {
-      name: "PBKDF2",
-      salt: fromHex(saltHex) as BufferSource,
-      iterations: PBKDF2_ITERATIONS,
-      hash: "SHA-256",
-    },
-    keyMaterial,
-    256,
-  );
-  return toHex(bits);
+  const subtle = requirePinSubtle(readPinSubtle());
+  try {
+    const keyMaterial = await subtle.importKey(
+      "raw",
+      new TextEncoder().encode(pin),
+      "PBKDF2",
+      false,
+      ["deriveBits"],
+    );
+    const bits = await subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        salt: fromHex(saltHex) as BufferSource,
+        iterations: PBKDF2_ITERATIONS,
+        hash: "SHA-256",
+      },
+      keyMaterial,
+      256,
+    );
+    return toHex(bits);
+  } catch (error) {
+    rethrowPinCrypto(error);
+  }
 }
 
 export async function createPinRecord(pin: string): Promise<PinRecord> {
+  requirePinSubtle(readPinSubtle());
   const salt = new Uint8Array(16);
   crypto.getRandomValues(salt);
   const pinSalt = toHex(salt);

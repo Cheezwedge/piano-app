@@ -150,7 +150,7 @@ Calibration stores an offset in **cents** from concert pitch (A4 = 440 Hz, middl
 
 The PIN never leaves this device.
 
-- Stored as a **random salt + PBKDF2-SHA-256** (100,000 iterations). Older unsalted hashes are still checked once, then upgraded on the next correct unlock.
+- Stored as a **random salt + PBKDF2-SHA-256** (100,000 iterations). Older unsalted hashes are still checked once, then upgraded on the next correct unlock. Save PIN does not switch to a weaker hash. On a plain `http` page, where `crypto.subtle` is missing, Save PIN asks you to open the app over **https**.
 - After **5** wrong tries the pad **locks** (30s, then 1, 2, then 4 minutes). Failed attempts are saved, so refreshing the page does not reset the pause.
 - A correct PIN opens a **two-minute parent window**. Settings, profile switching, and Leave skip the pad during that window so a grown-up is not asked again and again. Kids cannot spam guesses while the pad is locked.
 - Switching kid profiles always requires that window or a fresh PIN.

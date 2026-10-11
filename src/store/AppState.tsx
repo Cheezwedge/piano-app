@@ -11,11 +11,13 @@ import { loadState, saveState } from "../lib/storage";
 import {
   applyFailedPinAttempt,
   createPinRecord,
+  InsecurePinError,
   isUnlockWindowOpen,
   lockoutMessage,
   mismatchMessage,
   PIN_UNLOCK_MS,
   verifyPin,
+  type PinRecord,
   type PinResult,
 } from "../lib/pin";
 import { applyStageComplete, starsFromCounts } from "../lib/progress";
@@ -118,11 +120,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return { ok: false, reason: "locked", message: lockoutMessage(persist.pinLockedUntil, now) };
       }
 
-      const ok = await verifyPin(pin, persist);
+      let ok = false;
+      try {
+        ok = await verifyPin(pin, persist);
+      } catch (error) {
+        if (error instanceof InsecurePinError) {
+          return { ok: false, reason: "invalid", message: error.message };
+        }
+        throw error;
+      }
       if (ok) {
         const needsUpgrade = !persist.pinSalt;
         if (needsUpgrade) {
-          const record = await createPinRecord(pin);
+          let record: PinRecord;
+          try {
+            record = await createPinRecord(pin);
+          } catch (error) {
+            if (error instanceof InsecurePinError) {
+              return { ok: false, reason: "invalid", message: error.message };
+            }
+            throw error;
+          }
           update((prev) => ({
             ...prev,
             ...record,

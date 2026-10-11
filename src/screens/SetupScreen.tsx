@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AVATARS } from "../types";
-import { isValidPin } from "../lib/pin";
+import { isValidPin, savePinErrorMessage } from "../lib/pin";
 import { useApp } from "../store/AppState";
 
 export function SetupPinScreen() {
@@ -18,7 +18,12 @@ export function SetupPinScreen() {
       setError("Those PINs do not match.");
       return;
     }
-    await setPin(pin);
+    try {
+      await setPin(pin);
+    } catch (caught) {
+      setError(savePinErrorMessage(caught));
+      return;
+    }
     setScreen("setup-kid");
   };
 
@@ -49,7 +54,11 @@ export function SetupPinScreen() {
           onChange={(event) => setConfirm(event.target.value.replace(/\D/g, "").slice(0, 6))}
         />
       </label>
-      {error ? <p className="error-text">{error}</p> : null}
+      {error ? (
+        <p className="error-text" data-testid="save-pin-error">
+          {error}
+        </p>
+      ) : null}
       <button type="button" className="btn primary" data-testid="save-pin" onClick={() => void save()}>
         Save PIN
       </button>
