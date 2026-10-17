@@ -1,0 +1,19 @@
+# Cloudflare Pages cache policy. Service worker entrypoints must revalidate
+# so deploys are not stuck on a cached sw.js / workbox runtime / register script.
+# The web manifest can change between deploys, so keep its cache short.
+# Fingerprinted /assets/* stay immutable.
+
+/sw.js
+  Cache-Control: no-cache
+
+/registerSW.js
+  Cache-Control: no-cache
+
+/workbox-*.js
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=3600
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
