@@ -496,6 +496,77 @@ input:not([type="checkbox"]) {
   background: var(--teal);
 }
 
+.mode-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.mode-toggle .chip {
+  min-height: 40px;
+  padding: 6px 12px;
+}
+
+.scroll-staff {
+  background: var(--paper);
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  padding: 4px 8px 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.scroll-staff svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 250px;
+}
+
+.scroll-staff[data-clef="grand"] svg {
+  max-height: 320px;
+}
+
+.now-label {
+  font-family: Nunito, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--teal);
+  letter-spacing: 0.08em;
+}
+
+.timed-cue {
+  background: #efe6d6;
+  color: var(--ink);
+}
+
+.timed-cue[data-cue="on-time"] {
+  background: #d7f0e2;
+  color: var(--correct);
+}
+
+.timed-cue[data-cue="early"],
+.timed-cue[data-cue="late"] {
+  background: #f8e7b0;
+  color: #8a6a08;
+}
+
+.prompt.timed h2 {
+  font-size: 1.8rem;
+}
+
+.white-key[data-upcoming="true"]::before,
+.black-key[data-upcoming="true"]::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
 .prompt-kicker {
   text-transform: uppercase;
   letter-spacing: 0.08em;

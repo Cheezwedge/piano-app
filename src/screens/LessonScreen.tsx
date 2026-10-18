@@ -6,6 +6,7 @@ import { Celebration } from "../components/Celebration";
 import { ListeningStatus } from "../components/ListeningStatus";
 import { PianoKeyboard } from "../components/PianoKeyboard";
 import { PinPad } from "../components/PinPad";
+import { ScrollingStaff, TimedCueBanner } from "../components/ScrollingStaff";
 import { Staff } from "../components/Staff";
 import { UNIT_ORDER } from "../data/courses";
 import { playableById } from "../data/playable";
@@ -31,9 +32,11 @@ import {
   type TogetherPhase,
   type TogetherSession,
 } from "../lib/together";
+import { scheduledLabel, upcomingTarget } from "../lib/timedPlay";
 import { isSongUnlocked, isUnitUnlocked, type StageAward } from "../lib/progress";
 import { useActiveKid, useApp } from "../store/AppState";
-import type { FeedbackKind, LessonNote, LessonStage } from "../types";
+import type { FeedbackKind, InputSource, LessonNote, LessonStage } from "../types";
+import { useTimedStage } from "./useTimedStage";
 
 const HINT_DELAY_MS = 5000;
 const ADVANCE_MS = 900;
@@ -50,6 +53,7 @@ export function LessonScreen() {
     isParentUnlocked,
     activeUnitId,
     completeUnit,
+    updateSettings,
   } = useApp();
   const kid = useActiveKid();
   const unit = useMemo(() => playableById(activeUnitId), [activeUnitId]);
@@ -84,6 +88,7 @@ export function LessonScreen() {
   const beatAnchorRef = useRef(0);
   const holdReadyTimer = useRef(0);
   const advanceTimer = useRef(0);
+  const consumedTimedOrigin = useRef(0);
 
   const complete = stageIndex >= unit.stages.length;
   const stage = unit.stages[Math.min(stageIndex, unit.stages.length - 1)];
@@ -139,7 +144,7 @@ export function LessonScreen() {
     endAllHeldTones();
     lockedRef.current = false;
     setRestNonce((value) => value + 1);
-  }, [stageIndex, unit.id]);
+  }, [stageIndex, unit.id, persist.practiceMode]);
 
   useEffect(() => {
     if (unit.reading) return;
@@ -152,7 +157,7 @@ export function LessonScreen() {
   }, [stage.kind, hintVisible, noteIndex, unit.reading]);
 
   useEffect(() => {
-    if (!unit.timing || isDemo || complete) return;
+    if (!unit.timing || isDemo || complete || persist.practiceMode === "timed") return;
     let cancelled = false;
     const anchor = performance.now();
     beatAnchorRef.current = anchor;
@@ -179,7 +184,7 @@ export function LessonScreen() {
       window.clearTimeout(flash);
       setPulseOn(false);
     };
-  }, [unit.timing, unit.id, isDemo, complete, stageIndex]);
+  }, [unit.timing, unit.id, isDemo, complete, stageIndex, persist.practiceMode]);
 
   const finishUnit = () => {
     const result = completeUnit(unit.id, wrongsRef.current, scoredRef.current);
@@ -228,8 +233,25 @@ export function LessonScreen() {
     finishUnit();
   };
 
+  const timedPractice = persist.practiceMode === "timed" && !isDemo && !complete;
+  const { session: timedSession, attack: timedAttack, release: timedRelease } = useTimedStage({
+    enabled: timedPractice,
+    notes: stage.notes,
+    tempoPercent: persist.tempoPercent,
+    resetKey: `${unit.id}:${stageIndex}`,
+    onFinished: (score, origin) => {
+      if (consumedTimedOrigin.current === origin) return;
+      consumedTimedOrigin.current = origin;
+      wrongsRef.current += score.wrongs;
+      scoredRef.current += score.scored;
+      const stageNow = unit.stages[stageIndexRef.current];
+      noteIndexRef.current = Math.max(0, stageNow.notes.length - 1);
+      goToNextNote();
+    },
+  });
+
   useEffect(() => {
-    if (isDemo || complete) return;
+    if (isDemo || complete || persist.practiceMode === "timed") return;
     const target = unit.stages[stageIndex]?.notes[noteIndex];
     if (!isRest(target)) return;
     const timer = window.setTimeout(() => {
@@ -238,7 +260,7 @@ export function LessonScreen() {
     return () => window.clearTimeout(timer);
     // restNonce restarts the quiet wait after a sound during a rest.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDemo, complete, unit.id, stageIndex, noteIndex, restNonce]);
+  }, [isDemo, complete, unit.id, stageIndex, noteIndex, restNonce, persist.practiceMode]);
 
   const finishTogetherBeat = (event: Extract<TogetherEvent, { type: "completed" }>) => {
     lockedRef.current = true;
@@ -256,6 +278,16 @@ export function LessonScreen() {
 
   const handleNoteOn = (midi: number, source: string, velocity?: number, at = performance.now()) => {
     if (isDemo || lockedRef.current) return;
+    if (persist.practiceMode === "timed") {
+      const sound = timedAttack(midi, source as InputSource, at, velocity);
+      setLastPlayed(midi);
+      setLastSource(source);
+      if (source === "screen") {
+        if (sound === "hold") beginHeldTone(midi);
+        else if (sound === "tap") playMidiNote(midi, 0.28);
+      }
+      return;
+    }
     const target = unit.stages[stageIndexRef.current]?.notes[noteIndexRef.current];
     if (!target) return;
     setLastPlayed(midi);
@@ -416,6 +448,10 @@ export function LessonScreen() {
 
   const handleNoteOff = (midi: number, source: string, at = performance.now()) => {
     if (source === "screen") endHeldTone(midi);
+    if (!isDemo && persist.practiceMode === "timed") {
+      timedRelease(midi, source as InputSource, at);
+      return;
+    }
     const target = unit.stages[stageIndexRef.current]?.notes[noteIndexRef.current];
     if (target?.together && target.midi != null) {
       if (isDemo) return;
@@ -554,12 +590,35 @@ export function LessonScreen() {
     );
   }
 
+  const timedUpcoming = timedSession ? upcomingTarget(timedSession) : null;
+  const activeDynamic = timedPractice ? timedUpcoming?.dynamic : current.dynamic;
+
   return (
-    <main className="page lesson" data-testid="lesson-screen" data-unit-id={unit.id}>
+    <main className="page lesson" data-testid="lesson-screen" data-unit-id={unit.id} data-practice-mode={persist.practiceMode}>
       <header className="lesson-bar">
         <div>
           <p className="eyebrow">{unit.title} · {stage.title}</p>
           <strong>{kid?.avatar} {kid?.name}</strong>
+        </div>
+        <div className="mode-toggle" role="group" aria-label="Practice mode">
+          <button
+            type="button"
+            className={persist.practiceMode === "wait" ? "chip selected" : "chip"}
+            data-testid="mode-wait"
+            aria-pressed={persist.practiceMode === "wait"}
+            onClick={() => updateSettings({ practiceMode: "wait" })}
+          >
+            Wait
+          </button>
+          <button
+            type="button"
+            className={persist.practiceMode === "timed" ? "chip selected" : "chip"}
+            data-testid="mode-timed"
+            aria-pressed={persist.practiceMode === "timed"}
+            onClick={() => updateSettings({ practiceMode: "timed" })}
+          >
+            Timed
+          </button>
         </div>
         <div className="stage-pips" aria-label="Lesson stages">
           {unit.stages.map((item, index) => (
@@ -587,7 +646,9 @@ export function LessonScreen() {
       ) : null}
 
       <section className="lesson-stage">
-        {bassNote ? (
+        {timedPractice && timedSession ? (
+          <ScrollingStaff session={timedSession} showFinger={fingerVisible} />
+        ) : bassNote ? (
           <div className="grand-staff" data-testid="grand-staff">
             <div>
               <p className="hand-label" data-testid="hand-right">Right hand</p>
@@ -616,18 +677,29 @@ export function LessonScreen() {
             showName={answerVisible}
           />
         )}
-        <div className="prompt">
+        <div className={timedPractice ? "prompt timed" : "prompt"}>
           <p className="prompt-kicker" data-testid="prompt-kicker">
-            {promptKicker(isDemo, isRest(current), holding, holdReady, answerVisible, current.hand, shownTogetherPhase)}
+            {timedPractice
+              ? "Notes move to the line"
+              : promptKicker(isDemo, isRest(current), holding, holdReady, answerVisible, current.hand, shownTogetherPhase)}
           </p>
           <h2
-            className={togetherPart ? "together-title" : undefined}
+            className={togetherPart && !timedPractice ? "together-title" : undefined}
             data-testid="target-note"
             data-answer-visible={answerVisible ? "true" : "false"}
-            data-together={togetherPart ? "true" : "false"}
+            data-together={togetherPart && !timedPractice ? "true" : "false"}
           >
-            {answerVisible ? promptName(current) : "Read the staff"}
+            {timedPractice
+              ? answerVisible && timedUpcoming
+                ? scheduledLabel(timedUpcoming)
+                : "Read the staff"
+              : answerVisible
+                ? promptName(current)
+                : "Read the staff"}
           </h2>
+          {timedPractice && timedSession ? (
+            <TimedCueBanner cue={timedSession.cue} />
+          ) : (
           <FeedbackBanner
             feedback={feedback}
             lastPlayed={lastPlayed}
@@ -640,18 +712,19 @@ export function LessonScreen() {
             dynamicMiss={dynamicMiss}
             timingMiss={timingMiss}
           />
-          {unit.timing ? (
+          )}
+          {unit.timing && !timedPractice ? (
             <p className="beat-cue" data-testid="beat-cue">
               <span className={pulseOn ? "beat-pulse on" : "beat-pulse"} data-testid="beat-pulse" data-on={pulseOn ? "true" : "false"} />
               With the beat
             </p>
           ) : null}
-          {current.dynamic ? (
-            <p className="dynamic-cue" data-testid="dynamic-cue" data-dynamic={current.dynamic}>
-              {current.dynamic === "soft" ? "Soft" : "Loud"}
+          {activeDynamic ? (
+            <p className="dynamic-cue" data-testid="dynamic-cue" data-dynamic={activeDynamic}>
+              {activeDynamic === "soft" ? "Soft" : "Loud"}
             </p>
           ) : null}
-          {current.dynamic && !isDemo ? (
+          {activeDynamic && !isDemo ? (
             <div className="dynamic-choice" role="group" aria-label="How loud to play">
               <button
                 type="button"
@@ -683,16 +756,18 @@ export function LessonScreen() {
       </section>
 
       <PianoKeyboard
-        targetMidi={current.midi}
-        alsoMidi={togetherPart?.midi ?? null}
+        targetMidi={timedPractice ? timedUpcoming?.midi ?? null : current.midi}
+        alsoMidi={timedPractice ? timedUpcoming?.togetherMidi ?? null : togetherPart?.midi ?? null}
         hintLabel={togetherPart ? "RH" : "this key"}
         alsoHintLabel="LH"
-        hintVisible={isDemo || hintVisible}
+        hintVisible={timedPractice ? false : isDemo || hintVisible}
+        soonMidi={timedPractice ? timedUpcoming?.midi ?? null : null}
+        soonAlsoMidi={timedPractice ? timedUpcoming?.togetherMidi ?? null : null}
         lastPlayed={lastPlayed}
         feedback={feedback}
         range={unit.keyboard}
         onPlay={(midiNote) => {
-          const screenVelocity = current.dynamic && chosenDynamic ? velocityForScreen(chosenDynamic) : undefined;
+          const screenVelocity = activeDynamic && chosenDynamic ? velocityForScreen(chosenDynamic) : undefined;
           if (isDemo) {
             playMidiNote(midiNote, 0.3, 0, current.dynamic ? gainForDynamic(current.dynamic) : undefined);
             setLastPlayed(midiNote);
@@ -740,13 +815,15 @@ export function LessonScreen() {
               Show hint
             </button>
             <p className="muted">
-              {noteIndex + 1} / {stage.notes.length}
-              {fingerVisible && !isRest(current)
+              {timedPractice && timedSession
+                ? `${timedSession.marks.filter((mark) => mark != null).length} / ${timedSession.notes.length}`
+                : `${noteIndex + 1} / ${stage.notes.length}`}
+              {!timedPractice && fingerVisible && !isRest(current)
                 ? togetherPart
                   ? ` · LH finger ${togetherPart.finger} holds · RH finger ${current.finger}`
                   : ` · ${current.hand === "left" ? "LH" : "RH"} finger ${current.finger}`
                 : ""}
-              {unit.rhythm && current.duration ? ` · ${current.duration}` : ""}
+              {!timedPractice && unit.rhythm && current.duration ? ` · ${current.duration}` : ""}
             </p>
           </>
         )}

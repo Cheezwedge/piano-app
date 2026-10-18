@@ -18,6 +18,12 @@ export type SongBand = "home-steps" | "neighbor-notes" | "steady-beats";
 
 export type InputSource = "mic" | "midi" | "screen";
 
+/** Wait stays on one note. Timed moves the staff toward a fixed line. */
+export type PracticeMode = "wait" | "timed";
+
+/** Parent tempo for timed play. 100% is the Steady Beats count. */
+export type TempoPercent = 50 | 75 | 100;
+
 export type NoteDuration = "quarter" | "half" | "whole" | "rest";
 
 export type Hand = "right" | "left";
@@ -131,6 +137,10 @@ export interface PersistedState {
   sessionLimitMinutes: number;
   showFingerNumbers: boolean;
   calibrationCents: number;
+  /** Wait is the default so a young child is not rushed. */
+  practiceMode: PracticeMode;
+  /** Grown-up tempo for timed play. Wait mode ignores this. */
+  tempoPercent: TempoPercent;
   pathUnlocked: boolean;
   libraryUnlocked: boolean;
   kids: KidProfile[];
@@ -162,6 +172,8 @@ export const DEFAULT_STATE: PersistedState = {
   sessionLimitMinutes: 15,
   showFingerNumbers: true,
   calibrationCents: 0,
+  practiceMode: "wait",
+  tempoPercent: 75,
   pathUnlocked: false,
   libraryUnlocked: false,
   kids: [],

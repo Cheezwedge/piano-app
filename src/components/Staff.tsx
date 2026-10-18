@@ -140,7 +140,7 @@ export function Staff({ note, feedback, showFinger, showName = true }: Props) {
   );
 }
 
-function TrebleClef() {
+export function TrebleClef() {
   return (
     <g fill="none" stroke="#2c2418" strokeLinecap="round" strokeLinejoin="round">
       <path
@@ -172,7 +172,7 @@ function TrebleClef() {
   );
 }
 
-function BassClef() {
+export function BassClef() {
   return (
     <g fill="#2c2418" transform={`translate(0 ${bassClefShiftY()})`} data-testid="bass-clef">
       <path d="M92 78c18 0 34 14 34 32 0 22-20 38-46 38v-14c18 0 30-10 30-24 0-12-10-20-22-20-8 0-14 4-18 10l-10-10c8-8 18-12 32-12z" />

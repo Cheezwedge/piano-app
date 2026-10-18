@@ -21,6 +21,9 @@ interface Props {
   range?: "treble" | "wide";
   hintLabel?: string;
   alsoHintLabel?: string;
+  /** A quiet mark for the note that is about to reach the line. */
+  soonMidi?: number | null;
+  soonAlsoMidi?: number | null;
 }
 
 function keyPointers(midi: number, onPlay: (midi: number) => void, onRelease?: (midi: number) => void) {
@@ -50,6 +53,8 @@ export function PianoKeyboard({
   range = "treble",
   hintLabel = "this key",
   alsoHintLabel = "this key",
+  soonMidi = null,
+  soonAlsoMidi = null,
 }: Props) {
   const whites = range === "wide" ? WHITE_KEYS_C3_TO_C5 : WHITE_KEYS_C4_TO_C5;
   const blacks = range === "wide" ? BLACK_KEYS_C3_TO_C5 : BLACK_KEYS_C4_TO_C5;
@@ -61,6 +66,7 @@ export function PianoKeyboard({
           const isMelody = midi === targetMidi;
           const isBass = alsoMidi != null && midi === alsoMidi;
           const isTarget = hintVisible && (isMelody || isBass);
+          const isSoon = !isTarget && (midi === soonMidi || (soonAlsoMidi != null && midi === soonAlsoMidi));
           const isPlayed = lastPlayed === midi;
           const showResult = isPlayed && feedback !== "idle";
           const tone = showResult ? feedback : isTarget ? "hint" : "idle";
@@ -71,6 +77,7 @@ export function PianoKeyboard({
               className={`white-key tone-${tone}`}
               data-testid={`key-${midi}`}
               data-hint={isTarget ? "true" : "false"}
+              data-upcoming={isSoon ? "true" : "false"}
               data-hand={isBass ? "left" : isMelody && alsoMidi != null ? "right" : undefined}
               aria-label={midiToName(midi)}
               {...keyPointers(midi, onPlay, onRelease)}
@@ -84,6 +91,7 @@ export function PianoKeyboard({
       <div className="black-row">
         {blacks.map((midi) => {
           const isPlayed = lastPlayed === midi;
+          const isSoon = midi === soonMidi || (soonAlsoMidi != null && midi === soonAlsoMidi);
           return (
             <button
               key={midi}
@@ -91,6 +99,7 @@ export function PianoKeyboard({
               className={`black-key ${isPlayed ? `tone-${feedback}` : ""}`}
               style={{ left: blackKeyLeft(midi, whites), width: `calc(100% / ${whites.length} * 0.62)` }}
               data-testid={`key-${midi}`}
+              data-upcoming={isSoon ? "true" : "false"}
               aria-label={midiToName(midi)}
               {...keyPointers(midi, onPlay, onRelease)}
             />
