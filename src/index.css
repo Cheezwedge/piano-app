@@ -526,6 +526,11 @@ input:not([type="checkbox"]) {
   max-height: 320px;
 }
 
+.scroll-finger {
+  font-size: 13px;
+  fill: var(--teal);
+}
+
 .now-label {
   font-family: Nunito, sans-serif;
   font-size: 13px;

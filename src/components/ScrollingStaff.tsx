@@ -17,7 +17,7 @@ const PX = 84;
 const NOW_X = 188;
 const WIDTH = 720;
 const E4_Y = 128;
-const SINGLE_HEIGHT = 230;
+const SINGLE_HEIGHT = 248;
 
 interface Props {
   session: TimedSession;
@@ -43,7 +43,13 @@ export function ScrollingStaff({ session, showFinger }: Props) {
   const travel = (now - session.origin) / session.beatMs - session.leadBeats;
 
   return (
-    <div className="scroll-staff" data-testid="scrolling-staff" data-clef={clef}>
+    <div
+      className="scroll-staff"
+      data-testid="scrolling-staff"
+      data-clef={clef}
+      data-origin={Math.round(session.origin)}
+      data-beat-ms={session.beatMs}
+    >
       <svg viewBox={`0 0 ${WIDTH} ${height}`} role="img" aria-label="Notes move toward the now line">
         <defs>
           <clipPath id="timed-staff-clip">
@@ -249,12 +255,12 @@ function NoteHead({
       <ellipse
         cx={x}
         cy={y}
-        rx="13"
-        ry="9"
+        rx="15"
+        ry="11"
         transform={`rotate(-18 ${x} ${y})`}
         fill={open ? "var(--paper)" : color}
         stroke={color}
-        strokeWidth={open ? 2.2 : 0}
+        strokeWidth={open ? 2.6 : 0}
       />
       {stem ? <line x1={x + 11} x2={x + 11} y1={y} y2={y - 46} stroke={color} strokeWidth="2.1" /> : null}
       <rect x={x + 8} y={y + 14} width={bar} height="7" rx="3.5" fill="#e4d8c4" />
@@ -269,7 +275,7 @@ function NoteHead({
         data-progress={progress.toFixed(2)}
       />
       {finger ? (
-        <text x={x} y={y - 52} textAnchor="middle" className="finger-svg">
+        <text x={x - 18} y={y + 5} textAnchor="end" className="finger-svg scroll-finger">
           {finger}
         </text>
       ) : null}
