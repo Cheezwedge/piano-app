@@ -395,6 +395,31 @@ input:not([type="checkbox"]) {
   max-height: 220px;
 }
 
+.grand-staff {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  min-height: 0;
+}
+
+.hand-label {
+  margin: 0 0 2px;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.grand-staff .staff-wrap {
+  height: auto;
+  padding: 2px 8px;
+}
+
+.grand-staff .staff-wrap svg {
+  max-height: 108px;
+}
+
 .finger-svg,
 .staff-name {
   font-family: Nunito, sans-serif;
@@ -417,6 +442,58 @@ input:not([type="checkbox"]) {
 .prompt h2 {
   font-size: 3.2rem;
   line-height: 0.95;
+}
+
+.prompt h2.together-title {
+  font-size: 1.7rem;
+  line-height: 1.15;
+}
+
+.dynamic-cue {
+  margin: 4px 0 8px;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dynamic-cue[data-dynamic="soft"] {
+  color: var(--teal);
+}
+
+.dynamic-cue[data-dynamic="loud"] {
+  color: var(--ink);
+}
+
+.dynamic-choice {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dynamic-choice button[aria-pressed="true"] {
+  outline: 3px solid var(--teal);
+  background: #e7f4ee;
+}
+
+.beat-cue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.beat-pulse {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #d9d0c2;
+  flex: 0 0 14px;
+}
+
+.beat-pulse.on {
+  background: var(--teal);
 }
 
 .prompt-kicker {
@@ -536,6 +613,8 @@ input:not([type="checkbox"]) {
   background: #fffdf8;
   position: relative;
   cursor: pointer;
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 .white-key.tone-hint,
@@ -607,6 +686,8 @@ input:not([type="checkbox"]) {
   border-radius: 0 0 8px 8px;
   background: #2b241c;
   cursor: pointer;
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 .black-key.tone-wrong {

@@ -22,17 +22,40 @@ export type NoteDuration = "quarter" | "half" | "whole" | "rest";
 
 export type Hand = "right" | "left";
 
+export type Dynamic = "soft" | "loud";
+
+/** The other hand's note, sounding at the same time as the main note. */
+export interface TogetherPart {
+  midi: number;
+  name: string;
+  finger: number;
+  hand: Hand;
+  duration?: NoteDuration;
+}
+
 export interface LessonNote {
   midi: number | null;
   name: string;
   finger: number;
   duration?: NoteDuration;
   hand?: Hand;
+  /** When set, this pitch and `together` must be down at the same time. */
+  together?: TogetherPart;
+  /** Soft and loud are heard. A mismatch does not pass. */
+  dynamic?: Dynamic;
 }
 
 export interface LessonStage {
   id: string;
   kind: StageKind;
+  title: string;
+  blurb: string;
+  notes: LessonNote[];
+}
+
+/** One practice sitting inside a longer library piece. */
+export interface SongSection {
+  id: string;
   title: string;
   blurb: string;
   notes: LessonNote[];
@@ -46,6 +69,10 @@ export interface CourseUnit {
   blurb: string;
   keyboard: "treble" | "wide";
   rhythm: boolean;
+  /** Practice hides the letter and the glowing key so the child reads the staff. */
+  reading?: boolean;
+  /** A quiet pulse. The note counts only when the pitch is close to the beat. */
+  timing?: boolean;
   stages: LessonStage[];
 }
 
@@ -60,6 +87,13 @@ export interface LibrarySong {
   blurb: string;
   /** Course unit that must be finished (stars > 0) before this song unlocks. */
   unlockAfterUnitId: string;
+  /**
+   * Other songs that must be finished before this one opens.
+   * A grown-up PIN unlock still skips this wait.
+   */
+  unlockAfterSongIds?: string[];
+  /** Longer pieces can be practiced one section at a time. `notes` is every section in order. */
+  sections?: SongSection[];
   band: SongBand;
   bandLabel: string;
   keyboard: "treble" | "wide";

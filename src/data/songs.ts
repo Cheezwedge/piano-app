@@ -1,4 +1,4 @@
-import type { CourseUnit, LessonNote, LibrarySong } from "../types";
+import type { CourseUnit, LessonNote, LibrarySong, SongSection } from "../types";
 import { C, D, E, F, G, note } from "./lesson1";
 
 const A = note(9, "A", 5);
@@ -7,6 +7,13 @@ const C5 = note(12, "C", 5);
 
 function hold(source: LessonNote, duration: LessonNote["duration"]): LessonNote {
   return { ...source, duration };
+}
+
+/** The two folk songs that open as soon as Home Steps is finished. */
+export const HOME_STEPS_FIRST_SONG_IDS = ["song-hot-cross-buns", "song-mary-lamb"] as const;
+
+function piece(sections: SongSection[]): { notes: LessonNote[]; sections: SongSection[] } {
+  return { notes: sections.flatMap((section) => section.notes), sections };
 }
 
 /**
@@ -53,6 +60,7 @@ export const LIBRARY_SONGS: LibrarySong[] = [
       "Traditional French folk melody — public domain. Instrumental teaching line only. Home Keys simplified arrangement © original.",
     blurb: "A quiet moonlight tune on C, D, and E. No words — just the melody.",
     unlockAfterUnitId: "basics-five",
+    unlockAfterSongIds: [...HOME_STEPS_FIRST_SONG_IDS],
     band: "home-steps",
     bandLabel: "After Home Steps",
     keyboard: "treble",
@@ -68,6 +76,7 @@ export const LIBRARY_SONGS: LibrarySong[] = [
       "Beethoven d. 1827 — composition PD in the US. Home Keys simplified single-line arrangement © original.",
     blurb: "The famous hymn-like theme, slowed down on C D E F G.",
     unlockAfterUnitId: "basics-five",
+    unlockAfterSongIds: [...HOME_STEPS_FIRST_SONG_IDS],
     band: "home-steps",
     bandLabel: "After Home Steps",
     keyboard: "treble",
@@ -86,6 +95,7 @@ export const LIBRARY_SONGS: LibrarySong[] = [
       "Traditional folk melody used in many primers — public domain. Home Keys simplified arrangement © original.",
     blurb: "A boat-like lilt on the first five notes. Soft and even.",
     unlockAfterUnitId: "basics-five",
+    unlockAfterSongIds: [...HOME_STEPS_FIRST_SONG_IDS],
     band: "home-steps",
     bandLabel: "After Home Steps",
     keyboard: "treble",
@@ -98,14 +108,33 @@ export const LIBRARY_SONGS: LibrarySong[] = [
     composer: "Antonio Vivaldi",
     tradition: "The Four Seasons, Spring (1725)",
     licenseNote:
-      "Vivaldi d. 1741 — composition PD in the US. Home Keys simplified short motif © original. Not a full movement.",
-    blurb: "A tiny bird-like bounce on C D E F G. Just the opening idea, slowed down.",
+      "Vivaldi d. 1741 — composition PD in the US. Home Keys simplified opening in two sections, C D E F G only © original. Not the full concerto.",
+    blurb: "The bird call, then a higher answer. Still only C D E F G. Play one section at a time.",
     unlockAfterUnitId: "basics-five",
+    unlockAfterSongIds: [...HOME_STEPS_FIRST_SONG_IDS],
     band: "home-steps",
     bandLabel: "After Home Steps",
     keyboard: "treble",
     rhythm: false,
-    notes: [E, E, E, G, F, E, D, D, D, F, E, D, hold(C, "half")],
+    ...piece([
+      {
+        id: "birds",
+        title: "Birds",
+        blurb: "The famous opening call. Only C, D, E, F, and G.",
+        notes: [E, E, E, G, F, E, D, D, D, F, E, D, hold(C, "half")],
+      },
+      {
+        id: "answer",
+        title: "Higher answer",
+        blurb: "The same idea, starting up on G, then it comes back home.",
+        notes: [
+          G, G, G, E, F, G,
+          F, F, F, D, E, F,
+          E, E, E, G, F, E, D,
+          D, E, F, E, D, hold(C, "half"),
+        ],
+      },
+    ]),
   },
   {
     id: "song-twinkle",
@@ -143,14 +172,33 @@ export const LIBRARY_SONGS: LibrarySong[] = [
     composer: "Johannes Brahms",
     tradition: "Wiegenlied, Op. 49 No. 4 (1868)",
     licenseNote:
-      "Brahms d. 1897; published 1868 — composition PD in the US. Home Keys simplified arrangement © original.",
-    blurb: "A slow, kind bedtime line. Uses A, and holds a few notes a little longer.",
+      "Brahms d. 1897; published 1868 — composition PD in the US. Home Keys simplified two-part arrangement © original. Instrumental only.",
+    blurb: "A slow bedtime line in two parts. The first rocks. The second steps down and comes home. Uses A.",
     unlockAfterUnitId: "neighbors-abc",
     band: "neighbor-notes",
     bandLabel: "After Neighbor Notes",
     keyboard: "treble",
     rhythm: false,
-    notes: [E, hold(G, "half"), G, F, hold(A, "half"), A, G, F, E, D, hold(C, "whole")],
+    ...piece([
+      {
+        id: "rocking",
+        title: "Rocking",
+        blurb: "The bedtime line. The longer notes are part of the song.",
+        notes: [E, hold(G, "half"), G, F, hold(A, "half"), A, G, F, E, D, hold(C, "whole")],
+      },
+      {
+        id: "answer",
+        title: "Soft answer",
+        blurb: "A second phrase that steps down and rocks home again.",
+        notes: [
+          G, G, F, E,
+          D, E, F, G,
+          E, hold(G, "half"), G, F,
+          hold(A, "half"), A, G,
+          F, E, D, hold(C, "whole"),
+        ],
+      },
+    ]),
   },
   {
     id: "song-minuet-g",
@@ -188,23 +236,48 @@ export const LIBRARY_SONGS: LibrarySong[] = [
     composer: "Johann Pachelbel",
     tradition: "Canon in D (c. 1680) — C-major teaching line",
     licenseNote:
-      "Pachelbel d. 1706 — composition PD in the US. Home Keys very simplified single-line excerpt in C © original.",
-    blurb: "A calm rising-and-falling line with half notes. Finish Steady Beats first so the holds make sense.",
+      "Pachelbel d. 1706 — composition PD in the US. Home Keys simplified single line in C, in three short sections © original. Not the full canon.",
+    blurb: "A calm line in three short sections. Hold the long notes, then let go. Finish Steady Beats first.",
     unlockAfterUnitId: "rhythm-beats",
     band: "steady-beats",
     bandLabel: "After Steady Beats",
     keyboard: "treble",
     rhythm: true,
-    notes: [
-      hold(C, "half"),
-      hold(E, "half"),
-      hold(G, "half"),
-      hold(A, "half"),
-      hold(G, "half"),
-      hold(F, "half"),
-      hold(E, "half"),
-      hold(C, "whole"),
-    ],
+    ...piece([
+      {
+        id: "long-notes",
+        title: "Long notes",
+        blurb: "Hold each note for its full length, then let go.",
+        notes: [
+          hold(C, "half"),
+          hold(E, "half"),
+          hold(G, "half"),
+          hold(A, "half"),
+          hold(G, "half"),
+          hold(F, "half"),
+          hold(E, "half"),
+          hold(C, "whole"),
+        ],
+      },
+      {
+        id: "climb",
+        title: "Little steps",
+        blurb: "Shorter steps that climb toward high C, with a few longer notes.",
+        notes: [
+          E, G, A, G, F, E, D, C,
+          E, G, A, B, hold(C5, "half"), G, E, hold(C, "half"),
+        ],
+      },
+      {
+        id: "home",
+        title: "Coming home",
+        blurb: "Step back down and finish on a long C.",
+        notes: [
+          A, G, F, E, D, E, F, G,
+          E, D, C, D, hold(E, "half"), hold(C, "whole"),
+        ],
+      },
+    ]),
   },
 ];
 
@@ -216,8 +289,32 @@ export function isLibrarySongId(id: string): boolean {
   return id.startsWith("song-");
 }
 
-/** Wrap a library song as a two-stage playable: hear it, then wait-for-correct practice. */
+/** Parent-facing reason a later Home Steps song is still waiting. */
+export function songPacingLabel(song: LibrarySong): string | null {
+  const titles = (song.unlockAfterSongIds ?? [])
+    .map((id) => songById(id)?.title)
+    .filter((title): title is string => Boolean(title));
+  if (titles.length === 0) return null;
+  if (titles.length === 1) return `Finish ${titles[0]} to open this song.`;
+  const last = titles[titles.length - 1];
+  const lead = titles.slice(0, -1).join(", ");
+  const list = titles.length === 2 ? `${titles[0]} and ${titles[1]}` : `${lead}, and ${last}`;
+  return `Finish ${list} to open this song.`;
+}
+
+/** Wrap a library song as a demo, then wait-for-correct practice. Long pieces use one stage per section. */
 export function songToUnit(song: LibrarySong): CourseUnit {
+  const sectioned = (song.sections?.length ?? 0) > 1;
+  const practice = song.sections?.length
+    ? song.sections
+    : [
+        {
+          id: "melody",
+          title: "Play the song",
+          blurb: "Play each matching key. Hints stay hidden until you ask — or after a short wait.",
+          notes: song.notes,
+        },
+      ];
   return {
     id: song.id,
     courseId: "library",
@@ -231,16 +328,18 @@ export function songToUnit(song: LibrarySong): CourseUnit {
         id: "demo",
         kind: "demo",
         title: "Hear the song",
-        blurb: `Listen to a short Home Keys arrangement of ${song.title}. Then play it one note at a time.`,
+        blurb: sectioned
+          ? `Listen to ${song.title}. Then play it one section at a time.`
+          : `Listen to a short Home Keys arrangement of ${song.title}. Then play it one note at a time.`,
         notes: song.notes,
       },
-      {
-        id: "melody",
-        kind: "melody",
-        title: "Play the song",
-        blurb: "Play each matching key. Hints stay hidden until you ask — or after a short wait.",
-        notes: song.notes,
-      },
+      ...practice.map((section) => ({
+        id: section.id,
+        kind: "melody" as const,
+        title: section.title,
+        blurb: section.blurb,
+        notes: section.notes,
+      })),
     ],
   };
 }

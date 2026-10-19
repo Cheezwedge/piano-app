@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { durationBeats, midiToName } from "../audio/notes";
-import { playMidiNote, resumeAudio } from "../audio/synth";
+import { beginHeldTone, endAllHeldTones, endAllHeldTonesExcept, endHeldTone, playMidiNote, playPulse, resumeAudio } from "../audio/synth";
 import { useNoteInput } from "../audio/useNoteInput";
 import { Celebration } from "../components/Celebration";
 import { ListeningStatus } from "../components/ListeningStatus";
@@ -10,14 +10,33 @@ import { Staff } from "../components/Staff";
 import { UNIT_ORDER } from "../data/courses";
 import { playableById } from "../data/playable";
 import { songById } from "../data/songs";
+import { PULSE_BEAT_MS, timingAgainstBeat, type BeatTiming } from "../lib/beat";
+import { dynamicFromVelocity, gainForDynamic, judgeDynamic, velocityForScreen, type Dynamic } from "../lib/dynamics";
 import { classifyAttempt, shouldAdvance } from "../lib/practice";
+import { hiddenReadingKicker, initialHintVisible, showReadingAnswer } from "../lib/reading";
+import {
+  noteNeedsHold,
+  onRhythmAttack,
+  onRhythmRelease,
+  requiredHoldMs,
+  rhythmShouldAdvance,
+  type RhythmHold,
+} from "../lib/rhythm";
+import {
+  carryTogetherBass,
+  emptyTogether,
+  togetherAttack,
+  togetherRelease,
+  type TogetherEvent,
+  type TogetherPhase,
+  type TogetherSession,
+} from "../lib/together";
 import { isSongUnlocked, isUnitUnlocked, type StageAward } from "../lib/progress";
 import { useActiveKid, useApp } from "../store/AppState";
 import type { FeedbackKind, LessonNote, LessonStage } from "../types";
 
 const HINT_DELAY_MS = 5000;
 const ADVANCE_MS = 900;
-const BEAT_MS = 700;
 
 function isRest(note: LessonNote | undefined): boolean {
   return !note || note.midi == null || note.duration === "rest";
@@ -45,6 +64,13 @@ export function LessonScreen() {
   const [demoPlaying, setDemoPlaying] = useState(false);
   const [lastSource, setLastSource] = useState<string>("");
   const [holding, setHolding] = useState(false);
+  const [holdReady, setHoldReady] = useState(false);
+  const [shortHold, setShortHold] = useState(false);
+  const [dynamicMiss, setDynamicMiss] = useState<Dynamic | null>(null);
+  const [timingMiss, setTimingMiss] = useState<Exclude<BeatTiming, "on-time"> | null>(null);
+  const [pulseOn, setPulseOn] = useState(false);
+  const [chosenDynamic, setChosenDynamic] = useState<Dynamic | null>(null);
+  const [togetherPhase, setTogetherPhase] = useState<TogetherPhase | null>(null);
   const [restNonce, setRestNonce] = useState(0);
   const [award, setAward] = useState<StageAward | null>(null);
   const lockedRef = useRef(false);
@@ -53,11 +79,28 @@ export function LessonScreen() {
   const stageIndexRef = useRef(0);
   const wrongsRef = useRef(0);
   const scoredRef = useRef(0);
+  const holdRef = useRef<RhythmHold | null>(null);
+  const togetherRef = useRef<TogetherSession>(emptyTogether());
+  const beatAnchorRef = useRef(0);
+  const holdReadyTimer = useRef(0);
+  const advanceTimer = useRef(0);
 
   const complete = stageIndex >= unit.stages.length;
   const stage = unit.stages[Math.min(stageIndex, unit.stages.length - 1)];
   const current = stage.notes[Math.min(noteIndex, stage.notes.length - 1)];
   const isDemo = !complete && stage.kind === "demo";
+  const answerVisible = showReadingAnswer(Boolean(unit.reading), isDemo, hintVisible);
+  const togetherPart = current.together;
+  const bassNote: LessonNote | null = togetherPart
+    ? {
+        midi: togetherPart.midi,
+        name: togetherPart.name,
+        finger: togetherPart.finger,
+        hand: togetherPart.hand,
+        duration: togetherPart.duration,
+      }
+    : null;
+  const shownTogetherPhase = isDemo ? null : togetherPhase ?? (togetherPart ? "need-bass" : null);
   const unlocked = fromLibrary
     ? isSongUnlocked(songById(unit.id)?.unlockAfterUnitId ?? "", unit.id, {
         stars: kid?.stageStars ?? {},
@@ -74,25 +117,68 @@ export function LessonScreen() {
   useEffect(() => {
     if (stageIndex >= unit.stages.length) return;
     const next = unit.stages[stageIndex];
-    hintRef.current = next.kind !== "melody";
-    setHintVisible(next.kind !== "melody");
+    const showHints = initialHintVisible(next.kind, Boolean(unit.reading));
+    hintRef.current = showHints;
+    setHintVisible(showHints);
     setNoteIndex(0);
     noteIndexRef.current = 0;
     setFeedback("idle");
     setLastPlayed(null);
     setHolding(false);
+    setHoldReady(false);
+    setShortHold(false);
+    setDynamicMiss(null);
+    setTimingMiss(null);
+    setChosenDynamic(null);
+    holdRef.current = null;
+    togetherRef.current = emptyTogether();
+    setTogetherPhase(null);
+    window.clearTimeout(holdReadyTimer.current);
+    window.clearTimeout(advanceTimer.current);
+    endAllHeldTones();
     lockedRef.current = false;
     setRestNonce((value) => value + 1);
   }, [stageIndex, unit.id]);
 
   useEffect(() => {
+    if (unit.reading) return;
     if (stage.kind !== "melody" || hintVisible) return;
     const timer = window.setTimeout(() => {
       hintRef.current = true;
       setHintVisible(true);
     }, HINT_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [stage.kind, hintVisible, noteIndex]);
+  }, [stage.kind, hintVisible, noteIndex, unit.reading]);
+
+  useEffect(() => {
+    if (!unit.timing || isDemo || complete) return;
+    let cancelled = false;
+    const anchor = performance.now();
+    beatAnchorRef.current = anchor;
+    let timer = 0;
+    let flash = 0;
+    const tick = () => {
+      if (cancelled) return;
+      playPulse();
+      setPulseOn(true);
+      window.clearTimeout(flash);
+      flash = window.setTimeout(() => {
+        if (!cancelled) setPulseOn(false);
+      }, 140);
+      const elapsed = performance.now() - anchor;
+      const next = (Math.floor(elapsed / PULSE_BEAT_MS) + 1) * PULSE_BEAT_MS;
+      timer = window.setTimeout(tick, Math.max(0, anchor + next - performance.now()));
+    };
+    void resumeAudio();
+    tick();
+    return () => {
+      cancelled = true;
+      beatAnchorRef.current = 0;
+      window.clearTimeout(timer);
+      window.clearTimeout(flash);
+      setPulseOn(false);
+    };
+  }, [unit.timing, unit.id, isDemo, complete, stageIndex]);
 
   const finishUnit = () => {
     const result = completeUnit(unit.id, wrongsRef.current, scoredRef.current);
@@ -104,11 +190,25 @@ export function LessonScreen() {
   const goToNextNote = () => {
     const stageNow = unit.stages[stageIndexRef.current];
     const nextNote = noteIndexRef.current + 1;
+    window.clearTimeout(holdReadyTimer.current);
+    window.clearTimeout(advanceTimer.current);
+    holdRef.current = null;
     setHolding(false);
+    setHoldReady(false);
+    setShortHold(false);
+    setDynamicMiss(null);
+    setTimingMiss(null);
+    setChosenDynamic(null);
+    const upcoming = nextNote < stageNow.notes.length ? stageNow.notes[nextNote] : undefined;
+    const carried = carryTogetherBass(togetherRef.current, upcoming?.together?.midi ?? null);
+    togetherRef.current = carried;
+    setTogetherPhase(carried.bassDownSince != null ? "bass-ready" : upcoming?.together ? "need-bass" : null);
+    if (carried.bassMidi != null) endAllHeldTonesExcept(carried.bassMidi);
+    else endAllHeldTones();
     if (nextNote < stageNow.notes.length) {
       noteIndexRef.current = nextNote;
       setNoteIndex(nextNote);
-      const showHints = stageNow.kind !== "melody";
+      const showHints = initialHintVisible(stageNow.kind, Boolean(unit.reading));
       hintRef.current = showHints;
       setHintVisible(showHints);
       setFeedback("idle");
@@ -133,60 +233,297 @@ export function LessonScreen() {
     if (!isRest(target)) return;
     const timer = window.setTimeout(() => {
       goToNextNote();
-    }, durationBeats(target.duration) * BEAT_MS);
+    }, requiredHoldMs(target.duration));
     return () => window.clearTimeout(timer);
     // restNonce restarts the quiet wait after a sound during a rest.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDemo, complete, unit.id, stageIndex, noteIndex, restNonce]);
 
-  const handleIncoming = (midi: number, source: string) => {
+  const finishTogetherBeat = (event: Extract<TogetherEvent, { type: "completed" }>) => {
+    lockedRef.current = true;
+    scoredRef.current += 1;
+    setShortHold(false);
+    setHolding(false);
+    setHoldReady(false);
+    setFeedback(event.kind);
+    window.clearTimeout(holdReadyTimer.current);
+    window.clearTimeout(advanceTimer.current);
+    advanceTimer.current = window.setTimeout(() => {
+      goToNextNote();
+    }, ADVANCE_MS);
+  };
+
+  const handleNoteOn = (midi: number, source: string, velocity?: number, at = performance.now()) => {
     if (isDemo || lockedRef.current) return;
-    const target = unit.stages[stageIndexRef.current].notes[noteIndexRef.current];
+    const target = unit.stages[stageIndexRef.current]?.notes[noteIndexRef.current];
     if (!target) return;
     setLastPlayed(midi);
     setLastSource(source);
-    playMidiNote(midi, 0.35);
+
+    if (target.together && target.midi != null) {
+      const needsHold = noteNeedsHold(unit.rhythm, target);
+      const decision = togetherAttack(
+        togetherRef.current,
+        midi,
+        target.midi,
+        target.together.midi,
+        hintRef.current,
+        performance.now(),
+        needsHold,
+      );
+      togetherRef.current = decision.session;
+      if (decision.event.type === "ignore") return;
+      if (decision.event.type === "wrong") {
+        playMidiNote(midi, 0.35);
+        wrongsRef.current += 1;
+        setShortHold(false);
+        setFeedback("wrong");
+        return;
+      }
+      if (source === "screen") beginHeldTone(midi);
+      else playMidiNote(midi, 0.35);
+      if (decision.event.type === "need-bass") {
+        setTogetherPhase("need-bass");
+        setHolding(false);
+        setHoldReady(false);
+        setFeedback("idle");
+        return;
+      }
+      if (decision.event.type === "bass-ready") {
+        setTogetherPhase("bass-ready");
+        setHolding(false);
+        setHoldReady(false);
+        setShortHold(false);
+        setFeedback("idle");
+        return;
+      }
+      if (decision.event.type === "holding") {
+        setTogetherPhase("holding");
+        setHolding(true);
+        setHoldReady(false);
+        setShortHold(false);
+        setFeedback("idle");
+        const started = decision.session.melodyDownSince;
+        window.clearTimeout(holdReadyTimer.current);
+        holdReadyTimer.current = window.setTimeout(() => {
+          if (togetherRef.current.melodyDownSince !== started) return;
+          setHoldReady(true);
+          setTogetherPhase("ready");
+        }, requiredHoldMs(target.duration));
+        return;
+      }
+      if (decision.event.type === "completed") finishTogetherBeat(decision.event);
+      return;
+    }
 
     if (isRest(target)) {
+      playMidiNote(midi, 0.35);
       wrongsRef.current += 1;
+      setDynamicMiss(null);
       setFeedback("wrong");
+      setShortHold(false);
       setRestNonce((value) => value + 1);
       return;
     }
 
-    const kind = classifyAttempt(midi, target.midi, hintRef.current);
-    setFeedback(kind);
-    if (!shouldAdvance(kind)) {
+    if (unit.timing && target.midi != null && midi === target.midi && beatAnchorRef.current > 0) {
+      const timing = timingAgainstBeat(at, beatAnchorRef.current);
+      if (timing !== "on-time") {
+        playMidiNote(midi, 0.35);
+        wrongsRef.current += 1;
+        setShortHold(false);
+        setHolding(false);
+        setHoldReady(false);
+        holdRef.current = null;
+        setDynamicMiss(null);
+        setTimingMiss(timing);
+        setFeedback("wrong");
+        return;
+      }
+    }
+
+    const playedDynamic = velocity == null ? null : dynamicFromVelocity(velocity);
+    const dynamicPeak = target.dynamic ? gainForDynamic(playedDynamic) : undefined;
+    if (
+      target.dynamic &&
+      midi === target.midi &&
+      judgeDynamic(target.dynamic, playedDynamic) === "wrong-dynamic"
+    ) {
+      playMidiNote(midi, 0.35, 0, dynamicPeak);
       wrongsRef.current += 1;
+      setShortHold(false);
+      setHolding(false);
+      setHoldReady(false);
+      holdRef.current = null;
+      setDynamicMiss(target.dynamic);
+      setFeedback("wrong");
       return;
     }
 
-    lockedRef.current = true;
-    scoredRef.current += 1;
-    const holdMs = unit.rhythm ? durationBeats(target.duration) * BEAT_MS : ADVANCE_MS;
-    if (unit.rhythm && durationBeats(target.duration) > 1) setHolding(true);
-    window.setTimeout(() => {
-      goToNextNote();
-    }, holdMs);
+    if (!noteNeedsHold(unit.rhythm, target)) {
+      playMidiNote(midi, 0.35, 0, dynamicPeak);
+      const kind = classifyAttempt(midi, target.midi, hintRef.current);
+      setFeedback(kind);
+      setShortHold(false);
+      setDynamicMiss(null);
+      setTimingMiss(null);
+      if (!shouldAdvance(kind)) {
+        wrongsRef.current += 1;
+        return;
+      }
+      lockedRef.current = true;
+      scoredRef.current += 1;
+      window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = window.setTimeout(() => {
+        goToNextNote();
+      }, ADVANCE_MS);
+      return;
+    }
+
+    const decision = onRhythmAttack(holdRef.current, midi, target.midi, hintRef.current, performance.now());
+    if (decision.outcome.type === "ignore") return;
+    if (decision.outcome.type === "wrong-pitch") {
+      window.clearTimeout(holdReadyTimer.current);
+      holdRef.current = null;
+      setHolding(false);
+      setHoldReady(false);
+      setShortHold(false);
+      endAllHeldTones();
+      playMidiNote(midi, 0.35);
+      wrongsRef.current += 1;
+      setDynamicMiss(null);
+      setFeedback("wrong");
+      return;
+    }
+    if (decision.outcome.type !== "holding" || !decision.hold) return;
+
+    const activeHold = decision.hold;
+    holdRef.current = activeHold;
+    setHolding(true);
+    setHoldReady(false);
+    setShortHold(false);
+    setFeedback("idle");
+    if (source === "screen") beginHeldTone(midi);
+    else playMidiNote(midi, 0.35);
+    const required = requiredHoldMs(target.duration);
+    window.clearTimeout(holdReadyTimer.current);
+    holdReadyTimer.current = window.setTimeout(() => {
+      if (holdRef.current !== activeHold) return;
+      setHoldReady(true);
+    }, required);
+  };
+
+  const handleNoteOff = (midi: number, source: string, at = performance.now()) => {
+    if (source === "screen") endHeldTone(midi);
+    const target = unit.stages[stageIndexRef.current]?.notes[noteIndexRef.current];
+    if (target?.together && target.midi != null) {
+      if (isDemo) return;
+      if (lockedRef.current) {
+        if (midi === target.together.midi && togetherRef.current.bassMidi === midi) {
+          togetherRef.current = { ...togetherRef.current, bassMidi: null, bassDownSince: null };
+        }
+        return;
+      }
+      if (!noteNeedsHold(unit.rhythm, target)) {
+        if (midi === target.together.midi && togetherRef.current.bassMidi === midi) {
+          togetherRef.current = { ...togetherRef.current, bassMidi: null, bassDownSince: null };
+          setTogetherPhase("need-bass");
+        }
+        return;
+      }
+      const decision = togetherRelease(
+        togetherRef.current,
+        midi,
+        target.midi,
+        target.together.midi,
+        target.duration,
+        at,
+      );
+      togetherRef.current = decision.session;
+      if (decision.event.type === "ignore") return;
+      window.clearTimeout(holdReadyTimer.current);
+      setHolding(false);
+      setHoldReady(false);
+      if (decision.event.type === "need-bass") {
+        setTogetherPhase("need-bass");
+        return;
+      }
+      if (decision.event.type === "early-release") {
+        setTogetherPhase(decision.session.bassDownSince != null ? "bass-ready" : "need-bass");
+        wrongsRef.current += 1;
+        setShortHold(true);
+        setFeedback("wrong");
+        return;
+      }
+      if (decision.event.type === "completed") finishTogetherBeat(decision.event);
+      return;
+    }
+    if (isDemo || lockedRef.current) return;
+    if (!target || !noteNeedsHold(unit.rhythm, target)) return;
+
+    const decision = onRhythmRelease(holdRef.current, midi, requiredHoldMs(target.duration), at);
+    if (!rhythmShouldAdvance(decision.outcome) && decision.outcome.type !== "early-release") return;
+
+    window.clearTimeout(holdReadyTimer.current);
+    holdRef.current = null;
+    setHolding(false);
+    setHoldReady(false);
+
+    if (decision.outcome.type === "early-release") {
+      wrongsRef.current += 1;
+      setShortHold(true);
+      setFeedback("wrong");
+      return;
+    }
+
+    if (decision.outcome.type === "completed") {
+      lockedRef.current = true;
+      scoredRef.current += 1;
+      setShortHold(false);
+      setFeedback(decision.outcome.kind);
+      window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = window.setTimeout(() => {
+        goToNextNote();
+      }, ADVANCE_MS);
+    }
   };
 
   const { mic, midi, retryMic } = useNoteInput({
     enabled: !isDemo && !complete,
     calibrationCents: persist.calibrationCents,
-    onNote: (note) => handleIncoming(note.midi, note.source),
+    onNote: (note) => handleNoteOn(note.midi, note.source, note.velocity, note.at),
+    onRelease: (note) => handleNoteOff(note.midi, note.source, note.at),
   });
+
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(holdReadyTimer.current);
+      window.clearTimeout(advanceTimer.current);
+      endAllHeldTones();
+    };
+  }, []);
 
   const playDemo = async () => {
     await resumeAudio();
     setDemoPlaying(true);
+    let bassSounding: number | null = null;
     for (let i = 0; i < stage.notes.length; i += 1) {
       const item = stage.notes[i];
       setNoteIndex(i);
       setLastPlayed(item.midi);
       setHintVisible(true);
-      if (item.midi != null && item.duration !== "rest") playMidiNote(item.midi, 0.6);
-      await wait(durationBeats(item.duration) * 720);
+      if (item.together && bassSounding !== item.together.midi) {
+        if (bassSounding != null) endHeldTone(bassSounding);
+        beginHeldTone(item.together.midi);
+        bassSounding = item.together.midi;
+      }
+      if (unit.timing) playPulse();
+      if (item.midi != null && item.duration !== "rest") {
+        playMidiNote(item.midi, 0.6, 0, item.dynamic ? gainForDynamic(item.dynamic) : undefined);
+      }
+      await wait(unit.timing ? PULSE_BEAT_MS : durationBeats(item.duration) * 720);
     }
+    endAllHeldTones();
     setDemoPlaying(false);
     setLastPlayed(null);
     setNoteIndex(0);
@@ -249,16 +586,92 @@ export function LessonScreen() {
       ) : null}
 
       <section className="lesson-stage">
-        <Staff note={current} feedback={feedback} showFinger={persist.showFingerNumbers} />
+        {bassNote ? (
+          <div className="grand-staff" data-testid="grand-staff">
+            <div>
+              <p className="hand-label" data-testid="hand-right">Right hand</p>
+              <Staff
+                note={current}
+                feedback={feedback}
+                showFinger={persist.showFingerNumbers && answerVisible}
+                showName={answerVisible}
+              />
+            </div>
+            <div>
+              <p className="hand-label" data-testid="hand-left">Left hand holds</p>
+              <Staff
+                note={bassNote}
+                feedback={feedback}
+                showFinger={persist.showFingerNumbers && answerVisible}
+                showName={answerVisible}
+              />
+            </div>
+          </div>
+        ) : (
+          <Staff
+            note={current}
+            feedback={feedback}
+            showFinger={persist.showFingerNumbers && answerVisible}
+            showName={answerVisible}
+          />
+        )}
         <div className="prompt">
-          <p className="prompt-kicker">{promptKicker(isDemo, isRest(current), holding)}</p>
-          <h2 data-testid="target-note">{promptName(current)}</h2>
+          <p className="prompt-kicker" data-testid="prompt-kicker">
+            {promptKicker(isDemo, isRest(current), holding, holdReady, answerVisible, current.hand, shownTogetherPhase)}
+          </p>
+          <h2
+            className={togetherPart ? "together-title" : undefined}
+            data-testid="target-note"
+            data-answer-visible={answerVisible ? "true" : "false"}
+            data-together={togetherPart ? "true" : "false"}
+          >
+            {answerVisible ? promptName(current) : "Read the staff"}
+          </h2>
           <FeedbackBanner
             feedback={feedback}
             lastPlayed={lastPlayed}
             rest={isRest(current)}
             holding={holding}
+            holdReady={holdReady}
+            shortHold={shortHold}
+            answerVisible={answerVisible}
+            togetherPhase={shownTogetherPhase}
+            dynamicMiss={dynamicMiss}
+            timingMiss={timingMiss}
           />
+          {unit.timing ? (
+            <p className="beat-cue" data-testid="beat-cue">
+              <span className={pulseOn ? "beat-pulse on" : "beat-pulse"} data-testid="beat-pulse" data-on={pulseOn ? "true" : "false"} />
+              With the beat
+            </p>
+          ) : null}
+          {current.dynamic ? (
+            <p className="dynamic-cue" data-testid="dynamic-cue" data-dynamic={current.dynamic}>
+              {current.dynamic === "soft" ? "Soft" : "Loud"}
+            </p>
+          ) : null}
+          {current.dynamic && !isDemo ? (
+            <div className="dynamic-choice" role="group" aria-label="How loud to play">
+              <button
+                type="button"
+                className="btn ghost"
+                data-testid="choose-soft"
+                aria-pressed={chosenDynamic === "soft"}
+                onClick={() => setChosenDynamic("soft")}
+              >
+                Soft
+              </button>
+              <button
+                type="button"
+                className="btn ghost"
+                data-testid="choose-loud"
+                aria-pressed={chosenDynamic === "loud"}
+                onClick={() => setChosenDynamic("loud")}
+              >
+                Loud
+              </button>
+            </div>
+          ) : null}
           {isDemo ? (
             <p className="status-line">Demo is playing through the speakers. Listening starts when you are ready.</p>
           ) : (
@@ -270,17 +683,25 @@ export function LessonScreen() {
 
       <PianoKeyboard
         targetMidi={current.midi}
+        alsoMidi={togetherPart?.midi ?? null}
+        hintLabel={togetherPart ? "RH" : "this key"}
+        alsoHintLabel="LH"
         hintVisible={isDemo || hintVisible}
         lastPlayed={lastPlayed}
         feedback={feedback}
         range={unit.keyboard}
         onPlay={(midiNote) => {
+          const screenVelocity = current.dynamic && chosenDynamic ? velocityForScreen(chosenDynamic) : undefined;
           if (isDemo) {
-            playMidiNote(midiNote, 0.3);
+            playMidiNote(midiNote, 0.3, 0, current.dynamic ? gainForDynamic(current.dynamic) : undefined);
             setLastPlayed(midiNote);
             return;
           }
-          handleIncoming(midiNote, "screen");
+          handleNoteOn(midiNote, "screen", screenVelocity);
+        }}
+        onRelease={(midiNote) => {
+          if (isDemo) return;
+          handleNoteOff(midiNote, "screen");
         }}
       />
 
@@ -296,6 +717,7 @@ export function LessonScreen() {
               data-testid="ready-practice"
               disabled={demoPlaying}
               onClick={() => {
+                void resumeAudio();
                 stageIndexRef.current = 1;
                 setStageIndex(1);
               }}
@@ -318,8 +740,10 @@ export function LessonScreen() {
             </button>
             <p className="muted">
               {noteIndex + 1} / {stage.notes.length}
-              {persist.showFingerNumbers && !isRest(current)
-                ? ` · ${current.hand === "left" ? "LH" : "RH"} finger ${current.finger}`
+              {persist.showFingerNumbers && answerVisible && !isRest(current)
+                ? togetherPart
+                  ? ` · LH finger ${togetherPart.finger} holds · RH finger ${current.finger}`
+                  : ` · ${current.hand === "left" ? "LH" : "RH"} finger ${current.finger}`
                 : ""}
               {unit.rhythm && current.duration ? ` · ${current.duration}` : ""}
             </p>
@@ -344,15 +768,30 @@ export function LessonScreen() {
   );
 }
 
-function promptKicker(demo: boolean, rest: boolean, holding: boolean): string {
+function promptKicker(
+  demo: boolean,
+  rest: boolean,
+  holding: boolean,
+  holdReady: boolean,
+  answerVisible: boolean,
+  hand: LessonNote["hand"],
+  togetherPhase: TogetherPhase | null,
+): string {
   if (demo) return "Listen";
+  if (togetherPhase === "ready") return "Let the right hand go";
+  if (togetherPhase === "holding" || (holding && togetherPhase)) return "Both hands";
+  if (togetherPhase === "bass-ready") return "Left hand is holding";
+  if (togetherPhase === "need-bass") return "Left hand holds";
+  if (holdReady) return "Let go";
   if (holding) return "Hold the beat";
   if (rest) return "Stay quiet";
+  if (!answerVisible) return hiddenReadingKicker(hand);
   return "Play this note";
 }
 
 function promptName(note: LessonNote): string {
   if (note.midi == null || note.duration === "rest") return "Rest";
+  if (note.together) return `LH ${note.together.name} holds · RH ${note.name}`;
   return note.hand === "left" ? `LH ${note.name}` : note.name;
 }
 
@@ -361,18 +800,44 @@ function FeedbackBanner({
   lastPlayed,
   rest,
   holding,
+  holdReady,
+  shortHold,
+  answerVisible,
+  togetherPhase,
+  dynamicMiss,
+  timingMiss,
 }: {
   feedback: FeedbackKind;
   lastPlayed: number | null;
   rest: boolean;
   holding: boolean;
+  holdReady: boolean;
+  shortHold: boolean;
+  answerVisible: boolean;
+  togetherPhase: TogetherPhase | null;
+  dynamicMiss: Dynamic | null;
+  timingMiss: Exclude<BeatTiming, "on-time"> | null;
 }) {
-  if (holding) return <p className="banner hinted">Keep holding through the beat.</p>;
-  if (feedback === "idle" && rest) return <p className="banner idle">This count is a rest. Stay quiet.</p>;
-  if (feedback === "idle") return <p className="banner idle">Waiting for the matching key.</p>;
   const played = lastPlayed == null ? "" : midiToName(lastPlayed);
+  if (feedback === "wrong" && timingMiss) {
+    return (
+      <p className="banner wrong" data-testid="feedback-wrong">
+        Try again · {timingMiss}.
+      </p>
+    );
+  }
+  if (feedback === "wrong" && dynamicMiss) {
+    return (
+      <p className="banner wrong" data-testid="feedback-wrong">
+        Try again · play {dynamicMiss}.
+      </p>
+    );
+  }
   if (feedback === "wrong" && rest) {
     return <p className="banner wrong" data-testid="feedback-wrong">That was a rest. Stay quiet{played ? ` · heard ${played}` : ""}.</p>;
+  }
+  if (feedback === "wrong" && shortHold) {
+    return <p className="banner wrong" data-testid="feedback-wrong">Try again · hold a little longer.</p>;
   }
   if (feedback === "wrong") {
     return <p className="banner wrong" data-testid="feedback-wrong">Try again{played ? ` · heard ${played}` : ""}.</p>;
@@ -380,6 +845,34 @@ function FeedbackBanner({
   if (feedback === "correct-after-hint") {
     return <p className="banner hinted" data-testid="feedback-hinted">Yes — after a hint.</p>;
   }
+  if (feedback === "correct") {
+    return <p className="banner correct" data-testid="feedback-correct">Yes — first try.</p>;
+  }
+  if (togetherPhase === "ready") {
+    return (
+      <p className="banner hinted" data-testid="feedback-hold-ready">
+        Good hold. Let the right hand go. Keep the left hand down.
+      </p>
+    );
+  }
+  if (togetherPhase === "holding") {
+    return <p className="banner hinted" data-testid="feedback-holding">Both keys are down. Keep them through the beat.</p>;
+  }
+  if (holding && holdReady) {
+    return <p className="banner hinted" data-testid="feedback-hold-ready">Good hold. Let go.</p>;
+  }
+  if (holding) return <p className="banner hinted" data-testid="feedback-holding">Keep holding through the beat.</p>;
+  if (feedback === "idle" && togetherPhase === "bass-ready") {
+    return <p className="banner idle">Left hand is holding. Play the right-hand note.</p>;
+  }
+  if (feedback === "idle" && togetherPhase === "need-bass") {
+    return <p className="banner idle">Hold the left-hand key, then play the right-hand note.</p>;
+  }
+  if (feedback === "idle" && rest) return <p className="banner idle">This count is a rest. Stay quiet.</p>;
+  if (feedback === "idle" && !answerVisible) {
+    return <p className="banner idle">Look at the staff, then play that key.</p>;
+  }
+  if (feedback === "idle") return <p className="banner idle">Waiting for the matching key.</p>;
   return <p className="banner correct" data-testid="feedback-correct">Yes — first try.</p>;
 }
 

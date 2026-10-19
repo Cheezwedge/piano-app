@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { PinPad } from "../components/PinPad";
-import { LIBRARY_SONGS } from "../data/songs";
+import { LIBRARY_SONGS, songPacingLabel } from "../data/songs";
 import { isSongUnlocked } from "../lib/progress";
 import { useActiveKid, useApp } from "../store/AppState";
 import type { LibrarySong, SongBand } from "../types";
@@ -73,8 +73,8 @@ export function LibraryScreen() {
           original Home Keys arrangement. No Disney, pop, or video-game tunes.
         </p>
         <p className="muted">
-          Songs open when you finish the matching course stage. Unlocked songs do not need a grown-up PIN. A
-          grown-up can unlock a locked song early.
+          After Home Steps, Hot Cross Buns and Mary Had a Little Lamb open first. The other songs in that
+          group open after those two are finished. A grown-up can unlock a locked song early with the PIN.
         </p>
       </section>
 
@@ -110,6 +110,11 @@ export function LibraryScreen() {
                 <p className="song-composer">{song.composer}</p>
                 <p>{song.blurb}</p>
                 <p className="muted song-license">{song.licenseNote}</p>
+                {!open && songPacingLabel(song) ? (
+                  <p className="muted" data-testid={`pacing-${song.id}`}>
+                    {songPacingLabel(song)}
+                  </p>
+                ) : null}
                 <p className="star-row tiny" aria-label={earned ? `${earned} stars` : "Not finished"}>
                   {[1, 2, 3].map((slot) => (
                     <span key={slot} className={slot <= earned ? "lit" : ""}>

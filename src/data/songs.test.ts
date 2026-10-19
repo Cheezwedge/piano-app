@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { WHITE_KEYS_C4_TO_C5 } from "../audio/notes";
 import { isCourseUnitId, playableById } from "./playable";
-import { LIBRARY_SONGS, songToUnit } from "./songs";
+import { HOME_STEPS_FIRST_SONG_IDS, LIBRARY_SONGS, songById, songPacingLabel, songToUnit } from "./songs";
 
 const BANNED =
   /simply piano|disney|let it go|frozen|musescore|video.?game|beer|wine|drinking|battle hymn|war song|halloween|horror|kiss me|sexy/i;
@@ -52,14 +52,51 @@ describe("song library catalog", () => {
     }
   });
 
-  it("wraps each song as demo then wait-for-correct melody practice", () => {
+  it("wraps each song as a demo then wait-for-correct practice", () => {
     for (const song of LIBRARY_SONGS) {
       const unit = songToUnit(song);
       expect(unit.courseId).toBe("library");
-      expect(unit.stages.map((stage) => stage.kind)).toEqual(["demo", "melody"]);
-      expect(unit.stages[1].notes).toEqual(song.notes);
+      expect(unit.stages[0]?.kind).toBe("demo");
+      expect(unit.stages[0]?.notes).toEqual(song.notes);
+      const practice = unit.stages.slice(1);
+      expect(practice.length).toBeGreaterThanOrEqual(1);
+      expect(practice.every((stage) => stage.kind === "melody")).toBe(true);
+      expect(practice.flatMap((stage) => stage.notes)).toEqual(song.notes);
       expect(playableById(song.id).id).toBe(song.id);
     }
+  });
+
+  it("opens Hot Cross Buns and Mary first, then the rest of the Home Steps band", () => {
+    const first = [...HOME_STEPS_FIRST_SONG_IDS];
+    const home = LIBRARY_SONGS.filter((song) => song.band === "home-steps");
+    expect(home.slice(0, 2).map((song) => song.id)).toEqual(first);
+    for (const song of home.slice(2)) {
+      expect(song.unlockAfterSongIds).toEqual(first);
+      expect(songPacingLabel(song)).toBe("Finish Hot Cross Buns and Mary Had a Little Lamb to open this song.");
+    }
+    for (const id of first) {
+      expect(songById(id)?.unlockAfterSongIds ?? []).toEqual([]);
+    }
+    for (const song of LIBRARY_SONGS.filter((item) => item.band !== "home-steps")) {
+      expect(song.unlockAfterSongIds ?? []).toEqual([]);
+    }
+  });
+
+  it("lengthens Spring, Brahms Lullaby, and Canon into sections on the same keys", () => {
+    const homeSteps = new Set([60, 62, 64, 65, 67]);
+    const longer = ["song-spring", "song-brahms-lullaby", "song-canon"] as const;
+    for (const id of longer) {
+      const song = songById(id);
+      expect(song?.sections?.length).toBeGreaterThanOrEqual(2);
+      expect(song?.notes.length).toBeGreaterThanOrEqual(24);
+      expect(songToUnit(song!).stages.length).toBe((song?.sections?.length ?? 0) + 1);
+    }
+    for (const note of songById("song-spring")?.notes ?? []) {
+      expect(homeSteps.has(note.midi as number)).toBe(true);
+    }
+    expect(songById("song-canon")?.rhythm).toBe(true);
+    expect(songById("song-brahms-lullaby")?.rhythm).toBe(false);
+    expect(songById("song-spring")?.rhythm).toBe(false);
   });
 
   it("returns a stable playable object so practice does not reset on each key", () => {
