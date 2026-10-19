@@ -43,6 +43,10 @@ export function loadState(): PersistedState {
       ...DEFAULT_STATE,
       ...parsed,
       pinLength,
+      practiceMode: parsed.practiceMode === "timed" ? "timed" : "wait",
+      tempoPercent: parsed.tempoPercent === 50 || parsed.tempoPercent === 75 || parsed.tempoPercent === 100
+        ? parsed.tempoPercent
+        : 75,
       kids: Array.isArray(parsed.kids) ? parsed.kids.map((kid) => migrateKid(kid)) : [],
     };
   } catch {

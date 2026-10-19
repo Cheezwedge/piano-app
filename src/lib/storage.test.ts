@@ -21,6 +21,8 @@ describe("local persistence", () => {
     });
     expect(localStorage.getItem(STORAGE_KEY)).toContain("abc");
     expect(loadState().sessionLimitMinutes).toBe(10);
+    expect(loadState().practiceMode).toBe("wait");
+    expect(loadState().tempoPercent).toBe(75);
     clearState();
     expect(loadState().pinHash).toBe("");
   });
@@ -54,5 +56,25 @@ describe("local persistence", () => {
     expect(kid.lesson1Complete).toBe(true);
     expect(kid.unlockedSongs).toEqual([]);
     expect(loadState().libraryUnlocked).toBe(false);
+    expect(loadState().practiceMode).toBe("wait");
+  });
+
+  it("keeps a parent tempo and ignores a tempo that is not one of the three steps", () => {
+    saveState({
+      ...DEFAULT_STATE,
+      pinHash: "abc",
+      practiceMode: "timed",
+      tempoPercent: 50,
+      kids: [],
+    });
+    expect(loadState().practiceMode).toBe("timed");
+    expect(loadState().tempoPercent).toBe(50);
+    saveState({
+      ...DEFAULT_STATE,
+      pinHash: "abc",
+      tempoPercent: 40 as unknown as 75,
+      kids: [],
+    });
+    expect(loadState().tempoPercent).toBe(75);
   });
 });

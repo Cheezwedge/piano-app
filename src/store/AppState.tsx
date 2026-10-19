@@ -59,7 +59,13 @@ interface AppContextValue {
     patch: Partial<
       Pick<
         PersistedState,
-        "sessionLimitMinutes" | "showFingerNumbers" | "calibrationCents" | "pathUnlocked" | "libraryUnlocked"
+        | "sessionLimitMinutes"
+        | "showFingerNumbers"
+        | "calibrationCents"
+        | "pathUnlocked"
+        | "libraryUnlocked"
+        | "practiceMode"
+        | "tempoPercent"
       >
     >,
   ) => void;
@@ -277,7 +283,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       patch: Partial<
         Pick<
           PersistedState,
-          "sessionLimitMinutes" | "showFingerNumbers" | "calibrationCents" | "pathUnlocked" | "libraryUnlocked"
+          | "sessionLimitMinutes"
+        | "showFingerNumbers"
+        | "calibrationCents"
+        | "pathUnlocked"
+        | "libraryUnlocked"
+        | "practiceMode"
+        | "tempoPercent"
         >
       >,
     ) => {

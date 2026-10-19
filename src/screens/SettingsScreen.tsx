@@ -90,6 +90,27 @@ export function SettingsScreen() {
       </section>
 
       <section>
+        <h2>Timed mode tempo</h2>
+        <p className="muted">
+          Timed mode moves the staff toward a line. 100% is the Steady Beats count. 75% and 50% give
+          more time. Wait mode stays still, and it stays the default on a new device.
+        </p>
+        <div className="choice-row">
+          {([50, 75, 100] as const).map((percent) => (
+            <button
+              key={percent}
+              type="button"
+              className={persist.tempoPercent === percent ? "chip selected" : "chip"}
+              data-testid={`tempo-${percent}`}
+              onClick={() => updateSettings({ tempoPercent: percent })}
+            >
+              {percent}%
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section>
         <h2>Course path</h2>
         <p className="muted">
           Kids open the next stage after they finish the one before it. Unlock-all is for testing only.

@@ -64,7 +64,7 @@ export function useNoteInput({ enabled, calibrationCents, onNote, onRelease }: O
           calibrationCents,
           onNote: (hit) => {
             flash("mic", hit.midi);
-            onNoteRef.current({ midi: hit.midi, source: "mic" });
+            onNoteRef.current({ midi: hit.midi, source: "mic", at: performance.now() });
           },
           onRelease: (midiNote, at) => {
             onReleaseRef.current?.({ midi: midiNote, source: "mic", at });
