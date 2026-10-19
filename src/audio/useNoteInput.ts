@@ -30,6 +30,7 @@ export function useNoteInput({ enabled, calibrationCents, onNote, onRelease }: O
   onNoteRef.current = onNote;
   onReleaseRef.current = onRelease;
   const flashRef = useRef<number>(0);
+  const midiBaseRef = useRef<ListenChannel>(LISTEN_OFF);
 
   useEffect(() => {
     if (!enabled) {
@@ -49,14 +50,15 @@ export function useNoteInput({ enabled, calibrationCents, onNote, onRelease }: O
       window.clearTimeout(flashRef.current);
       flashRef.current = window.setTimeout(() => {
         if (source === "mic") setMic((prev) => (prev.status === "detected" ? { status: "listening" } : prev));
-        else setMidi((prev) => (prev.status === "detected" ? { ...prev, status: "listening" } : prev));
+        else setMidi((prev) => (prev.status === "detected" ? midiBaseRef.current : prev));
       }, 900);
     };
 
     const start = async () => {
       await resumeAudio();
       setMic({ status: "starting" });
-      setMidi({ status: "starting" });
+      midiBaseRef.current = { status: "starting" };
+      setMidi(midiBaseRef.current);
       try {
         stopMic = await startMicWatch({
           calibrationCents,
@@ -84,11 +86,16 @@ export function useNoteInput({ enabled, calibrationCents, onNote, onRelease }: O
             onReleaseRef.current?.({ midi: hit.midi, source: "midi", at: hit.at });
           },
           onStatus: (state) => {
+            if (state.status !== "detected") midiBaseRef.current = state;
             if (!cancelled) setMidi(state);
           },
         });
+        if (cancelled) stopMidi();
       } catch {
-        if (!cancelled) setMidi({ status: "error", detail: "Unavailable" });
+        if (!cancelled) {
+          midiBaseRef.current = { status: "error", detail: "Unavailable" };
+          setMidi(midiBaseRef.current);
+        }
       }
     };
 

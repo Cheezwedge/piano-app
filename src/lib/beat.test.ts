@@ -32,8 +32,7 @@ describe("on the beat course step", () => {
   const whites = new Set([60, 62, 64, 65, 67]);
 
   it("is the only beat gate, after Soft and Loud, for a short right-hand pattern", () => {
-    expect(ids.at(-1)).toBe("on-the-beat");
-    expect(ids.at(-2)).toBe("soft-loud");
+    expect(ids[ids.indexOf("soft-loud") + 1]).toBe("on-the-beat");
     expect(COURSE_UNITS.filter((item) => beatGateRequired(item)).map((item) => item.id)).toEqual(["on-the-beat"]);
     expect(unit?.rhythm).toBe(false);
     expect(unit?.keyboard).toBe("treble");

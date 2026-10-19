@@ -1,3 +1,4 @@
+import { midiFallbackMessage } from "../audio/midi";
 import { listenLabel, type ListenChannel } from "../audio/listenStatus";
 
 interface Props {
@@ -25,6 +26,11 @@ export function ListeningStatus({ mic, midi, onRetryMic }: Props) {
           ) : null}
         </div>
       ) : null}
+      {midi.status === "error" ? (
+        <div className="midi-fallback" data-testid="midi-fallback">
+          <p>{midiFallbackMessage(midi.detail)}</p>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -34,7 +40,7 @@ function ListenPill({ kind, channel }: { kind: string; channel: ListenChannel })
     <span className={`listen-pill is-${channel.status}`} data-testid={`listen-${kind.toLowerCase()}`}>
       <span className="listen-dot" aria-hidden="true" />
       <strong>{kind}</strong>
-      <span>{listenLabel(channel)}</span>
+      <span title={channel.detail}>{listenLabel(channel)}</span>
     </span>
   );
 }

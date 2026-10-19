@@ -93,7 +93,8 @@ describe("both-at-once course step", () => {
   const hello = COURSE_UNITS.find((item) => item.id === "twohands-hello");
 
   it("adds one short together piece and leaves Two Hands Hello turn-taking", () => {
-    expect(COURSE_UNITS.map((item) => item.id).at(-3)).toBe("hands-together");
+    const ids = COURSE_UNITS.map((item) => item.id);
+    expect(ids[ids.indexOf("twohands-hello") + 1]).toBe("hands-together");
     expect(unit?.rhythm).toBe(true);
     expect(unit?.keyboard).toBe("wide");
     expect(unit?.stages.map((stage) => stage.kind)).toEqual(["demo", "guided", "melody"]);

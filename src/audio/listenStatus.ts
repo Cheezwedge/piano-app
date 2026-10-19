@@ -1,4 +1,4 @@
-export type ListenStatus = "off" | "starting" | "calibrating" | "listening" | "detected" | "error";
+export type ListenStatus = "off" | "starting" | "calibrating" | "listening" | "connected" | "detected" | "error";
 
 export interface ListenChannel {
   status: ListenStatus;
@@ -17,6 +17,8 @@ export function listenLabel(channel: ListenChannel): string {
       return "Calibrating…";
     case "listening":
       return channel.detail ? `Listening · ${channel.detail}` : "Listening";
+    case "connected":
+      return channel.detail ? `Connected · ${channel.detail}` : "Connected";
     case "detected":
       return channel.detail ? `Heard ${channel.detail}` : "Note detected";
     case "error":

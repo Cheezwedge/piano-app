@@ -2,13 +2,19 @@ import { describe, expect, it } from "vitest";
 import {
   applyFailedPinAttempt,
   createPinRecord,
+  derivePinHash,
+  INSECURE_PIN_MESSAGE,
+  InsecurePinError,
   isUnlockWindowOpen,
   isValidPin,
   legacyHashPin,
   lockoutMs,
   mismatchMessage,
+  PIN_KDF,
   PIN_MAX_ATTEMPTS,
   PIN_UNLOCK_MS,
+  requirePinSubtle,
+  savePinErrorMessage,
   verifyPin,
 } from "./pin";
 
@@ -24,11 +30,36 @@ describe("parent PIN", () => {
   it("derives a salted hash that verifies", async () => {
     const first = await createPinRecord("2468");
     const second = await createPinRecord("2468");
+    expect(first.pinKdf).toBe(PIN_KDF);
     expect(first.pinHash).not.toContain("2468");
     expect(first.pinSalt).not.toBe(second.pinSalt);
     expect(first.pinHash).not.toBe(second.pinHash);
     expect(await verifyPin("2468", first)).toBe(true);
     expect(await verifyPin("0000", first)).toBe(false);
+  });
+
+  it("tells Save PIN to open https when crypto.subtle is missing and does not hash", async () => {
+    expect(() => requirePinSubtle(undefined)).toThrow(InsecurePinError);
+    expect(savePinErrorMessage(new InsecurePinError())).toBe(INSECURE_PIN_MESSAGE);
+    expect(INSECURE_PIN_MESSAGE).toMatch(/https/);
+
+    const cryptoObj = globalThis.crypto;
+    const descriptor = Object.getOwnPropertyDescriptor(cryptoObj, "subtle");
+    Object.defineProperty(cryptoObj, "subtle", {
+      configurable: true,
+      get() {
+        return undefined;
+      },
+    });
+    try {
+      await expect(createPinRecord("2468")).rejects.toBeInstanceOf(InsecurePinError);
+      await expect(createPinRecord("2468")).rejects.toThrow(/https/);
+      await expect(derivePinHash("2468", "ab".repeat(16))).rejects.toBeInstanceOf(InsecurePinError);
+      await expect(legacyHashPin("2468")).rejects.toBeInstanceOf(InsecurePinError);
+    } finally {
+      if (descriptor) Object.defineProperty(cryptoObj, "subtle", descriptor);
+      else delete (cryptoObj as { subtle?: SubtleCrypto }).subtle;
+    }
   });
 
   it("hashes 5 and 6 digit PINs", async () => {

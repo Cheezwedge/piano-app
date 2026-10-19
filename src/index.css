@@ -570,8 +570,13 @@ input:not([type="checkbox"]) {
   background: var(--hinted);
 }
 
-.listen-pill.is-listening .listen-dot {
+.listen-pill.is-listening .listen-dot,
+.listen-pill.is-connected .listen-dot {
   background: var(--teal);
+}
+
+.listen-pill.is-connected {
+  background: #d7f0e2;
 }
 
 .listen-pill.is-detected {
@@ -779,6 +784,18 @@ input:not([type="checkbox"]) {
 .mic-retry p {
   margin: 0 0 8px;
   color: var(--wrong);
+  font-size: 0.92rem;
+}
+
+.midi-fallback {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #efe6d6;
+}
+
+.midi-fallback p {
+  margin: 0;
   font-size: 0.92rem;
 }
 

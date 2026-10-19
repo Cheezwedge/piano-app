@@ -2,7 +2,7 @@
 
 A tablet-first piano primer for kids. Home Keys is an original product. It is inspired by the *idea* of guided piano practice (listen, see the staff, play the matching key) and does **not** copy Simply Piano — or any other commercial app — assets, branding, songs, lesson scripts, UI chrome, or course content.
 
-Kids follow a short **course path** — notes, neighbors, reading the staff, the bass clef, rhythm, a light two-hand hello, both hands at once, soft and loud, then playing on a quiet pulse. After those early stages they can open a **song library** of free-to-use classical and folk teaching pieces. Each stage waits for the matching key. Parents keep a PIN on settings, profile switching, progress resets, and early exit. There are no ads, purchases, social accounts, or store links.
+Kids follow a short **course path** — notes, neighbors, reading the staff, the bass clef, rhythm, a light two-hand hello, both hands at once, soft and loud, playing on a quiet pulse, then finger numbers for steps and skips. After those early stages they can open a **song library** of free-to-use classical and folk teaching pieces. Each stage waits for the matching key. Parents keep a PIN on settings, profile switching, progress resets, and early exit. There are no ads, purchases, social accounts, or store links.
 
 ## Run locally
 
@@ -45,6 +45,7 @@ Original Home Keys material only. No licensed songs, Disney/pop tunes, or lookal
 | 7 | **Both at Once** | Left hand holds low C while the right hand plays C E G E. Both hands sound together | **Still Steps** |
 | 8 | **Soft and Loud** | Right hand only. A quiet sound and a strong sound. The wrong loudness does not pass | **Quiet Step** |
 | 9 | **On the Beat** | Right hand only. A quiet pulse. The note counts when it is close to the beat | **Pulse Walk** |
+| 10 | **Five Fingers** | Steps and skips on the treble staff, with finger numbers 1–5. White keys, middle C to G | **Thumb Path** |
 
 Each stage: a short tip / demo → guided practice (hints + wait) → the melody. The next stage unlocks only after the prior one is finished. A grown-up can **Unlock entire path** in settings (behind the PIN) for testing.
 
@@ -58,11 +59,13 @@ Each stage: a short tip / demo → guided practice (hints + wait) → the melody
 
 **On the Beat** opens after Soft and Loud. It is the only step that waits for the beat. A quiet pulse sounds, and the child plays the right key close to that pulse. A right note that is clearly early or late stays put and says **early** or **late**. A right note on the pulse moves on. Earlier lessons still wait for the correct note whenever the child plays it. Steady Beats still asks for a full hold when a note has a length. On-screen keys and a MIDI keyboard both follow the same pulse. Pulse Walk is four white keys in the right hand: C D E C.
 
+**Five Fingers** opens after On the Beat. It stays on the white keys from middle C to G. The demo names fingers 1 through 5 (thumb through pinky). In **Step and skip** and **Thumb Path** the letter stays hidden and no key glows until **Show hint**, and the finger number stays on the staff. A step is the next white key. A skip jumps over one. A wrong key does not advance. Thumb Path is an original tune. This lesson does not use black keys.
+
 **Steady Beats** is the rhythm lesson. A right pitch counts only after it is held for the whole note and then released. A quarter is one count, a half is two, and a whole is four (about 0.7 seconds per count). Letting go early stays on that note and shows the same coral “try again” as a wrong key. The lesson waits until the pitch is right and the hold is long enough. Rests are still one quiet count. There is no metronome.
 
 To try it: finish Home Steps and Neighbor Notes, or unlock the path in grown-up settings, then start **Steady Beats** and tap **I am ready**. On **Hold and rest**, E is a half note and G is a whole note. Press and hold the glowing key. Release early and the lesson does not move on. Hold until it says to let go, then release, and it does.
 
-Optional finger numbers: right-hand C=1 through G=5; left-hand notes show as LH. Toggle in settings.
+Optional finger numbers: right-hand C=1 through G=5; left-hand notes show as LH. Toggle in settings. Five Fingers keeps those numbers on the staff even while the letter is hidden.
 
 The **course path** stays original Home Keys material. The separate **song library** (below) is the only place traditional / public-domain teaching melodies appear, as original simplified note lists.
 
@@ -133,13 +136,14 @@ Home Keys listens on three paths at once during practice. The lesson chrome show
 | Off | Listening is not running (demo stage, or lesson not started). |
 | Starting… | Permission / device setup in progress. |
 | Calibrating… | Grown-up settings → Listen for middle C. |
-| Listening | Ready. MIDI also names the plugged-in keyboard when it can. |
-| Heard C4 (etc.) | A note was just detected on that path. |
-| Error | Mic permission blocked, or Web MIDI missing / failed. Practice shows **Allow microphone** so the kid (or grown-up) can retry the browser prompt. MIDI and on-screen keys still work. |
+| Listening | Mic is ready. |
+| Connected · name | A USB MIDI keyboard is connected. The pill shows the device name. Unplugging updates this without a reload. |
+| Heard C4 (etc.) | A note was just detected on that path. The MIDI pill then returns to the device name. |
+| Error | Mic permission blocked, or Web MIDI missing / no keyboard. Practice shows **Allow microphone** when the mic is blocked. If MIDI is missing (including iPad Safari) or no keyboard is plugged in, the page says to use the microphone or the on-screen keys. |
 
 | Input | How it works | Limits |
 | --- | --- | --- |
-| **Web MIDI** | `navigator.requestMIDIAccess` — note-on events map 1:1 to piano keys. Best accuracy. | Safari on iPad / iOS generally has **no Web MIDI**. Use Chrome on a computer or Android, or a browser that implements the API. The page must be `localhost` or HTTPS. |
+| **Web MIDI** | `navigator.requestMIDIAccess` — note-on events map 1:1 to piano keys. Note-on with velocity 0 counts as note-off. Plugging or unplugging updates the pill through `onstatechange`, with no reload. | Safari on iPad / iOS generally has **no Web MIDI**. That is expected. Use the microphone or the on-screen keys. Desktop Chrome or Edge on `localhost` or HTTPS can use a USB keyboard. |
 | **Microphone** | [Pitchy](https://github.com/ianprime0509/pitchy) (YIN) on the Web Audio API. Play a real acoustic or digital piano into the mic. Calibrate with **Listen for middle C** so a slightly sharp/flat room piano still maps to C4. | Rooms are noisy. Soft notes, pedals, and overlapping tones confuse pitch detection. Headphones can leak. iOS will prompt for mic permission. This MVP prefers a clear, single note held for a moment over studio-grade DSP. |
 | **On-screen keyboard** | Large C4–C5 keys, with the target key highlighted. Useful on a tablet while you set up, and for automated tests. | This is a fallback, not a replacement for a real keyboard. |
 
@@ -149,7 +153,7 @@ Calibration stores an offset in **cents** from concert pitch (A4 = 440 Hz, middl
 
 The PIN never leaves this device.
 
-- Stored as a **random salt + PBKDF2-SHA-256** (100,000 iterations). Older unsalted hashes are still checked once, then upgraded on the next correct unlock.
+- Stored as a **random salt + PBKDF2-SHA-256** (100,000 iterations). Older unsalted hashes are still checked once, then upgraded on the next correct unlock. Save PIN does not switch to a weaker hash. On a plain `http` page, where `crypto.subtle` is missing, Save PIN asks you to open the app over **https**.
 - After **5** wrong tries the pad **locks** (30s, then 1, 2, then 4 minutes). Failed attempts are saved, so refreshing the page does not reset the pause.
 - A correct PIN opens a **two-minute parent window**. Settings, profile switching, and Leave skip the pad during that window so a grown-up is not asked again and again. Kids cannot spam guesses while the pad is locked.
 - Switching kid profiles always requires that window or a fresh PIN.

@@ -13,7 +13,7 @@ import { songById } from "../data/songs";
 import { PULSE_BEAT_MS, timingAgainstBeat, type BeatTiming } from "../lib/beat";
 import { dynamicFromVelocity, gainForDynamic, judgeDynamic, velocityForScreen, type Dynamic } from "../lib/dynamics";
 import { classifyAttempt, shouldAdvance } from "../lib/practice";
-import { hiddenReadingKicker, initialHintVisible, showReadingAnswer } from "../lib/reading";
+import { hiddenReadingKicker, initialHintVisible, showReadingAnswer, showStaffFinger } from "../lib/reading";
 import {
   noteNeedsHold,
   onRhythmAttack,
@@ -90,6 +90,7 @@ export function LessonScreen() {
   const current = stage.notes[Math.min(noteIndex, stage.notes.length - 1)];
   const isDemo = !complete && stage.kind === "demo";
   const answerVisible = showReadingAnswer(Boolean(unit.reading), isDemo, hintVisible);
+  const fingerVisible = showStaffFinger(persist.showFingerNumbers, answerVisible, Boolean(unit.fingersOnStaff));
   const togetherPart = current.together;
   const bassNote: LessonNote | null = togetherPart
     ? {
@@ -593,7 +594,7 @@ export function LessonScreen() {
               <Staff
                 note={current}
                 feedback={feedback}
-                showFinger={persist.showFingerNumbers && answerVisible}
+                showFinger={fingerVisible}
                 showName={answerVisible}
               />
             </div>
@@ -602,7 +603,7 @@ export function LessonScreen() {
               <Staff
                 note={bassNote}
                 feedback={feedback}
-                showFinger={persist.showFingerNumbers && answerVisible}
+                showFinger={fingerVisible}
                 showName={answerVisible}
               />
             </div>
@@ -611,7 +612,7 @@ export function LessonScreen() {
           <Staff
             note={current}
             feedback={feedback}
-            showFinger={persist.showFingerNumbers && answerVisible}
+            showFinger={fingerVisible}
             showName={answerVisible}
           />
         )}
@@ -740,7 +741,7 @@ export function LessonScreen() {
             </button>
             <p className="muted">
               {noteIndex + 1} / {stage.notes.length}
-              {persist.showFingerNumbers && answerVisible && !isRest(current)
+              {fingerVisible && !isRest(current)
                 ? togetherPart
                   ? ` · LH finger ${togetherPart.finger} holds · RH finger ${current.finger}`
                   : ` · ${current.hand === "left" ? "LH" : "RH"} finger ${current.finger}`

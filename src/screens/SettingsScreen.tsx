@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ColorLegend } from "../components/ColorLegend";
 import { COURSE_UNITS } from "../data/courses";
 import { LIBRARY_SONGS } from "../data/songs";
-import { isValidPin } from "../lib/pin";
+import { isValidPin, savePinErrorMessage } from "../lib/pin";
 import { levelFromXp } from "../lib/progress";
 import { useApp } from "../store/AppState";
 
@@ -29,7 +29,12 @@ export function SettingsScreen() {
       setMessage("Enter the same 4 to 6 digit PIN twice.");
       return;
     }
-    await setPin(pin);
+    try {
+      await setPin(pin);
+    } catch (error) {
+      setMessage(savePinErrorMessage(error));
+      return;
+    }
     setPinValue("");
     setConfirm("");
     setMessage(`PIN updated (${pin.length} digits).`);

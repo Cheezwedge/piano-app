@@ -344,6 +344,40 @@ export const COURSE_UNITS: CourseUnit[] = [
       },
     ],
   },
+  {
+    id: "finger-steps",
+    courseId: "fingers",
+    title: "Five Fingers",
+    subtitle: "Steps and skips",
+    blurb: "Read a step or a skip on the staff. Finger numbers 1 to 5 stay on the note. White keys from middle C to G.",
+    keyboard: "treble",
+    rhythm: false,
+    reading: true,
+    fingersOnStaff: true,
+    stages: [
+      {
+        id: "demo",
+        kind: "demo",
+        title: "Thumb to pinky",
+        blurb: "1 is your thumb on C. 5 is your pinky on G. A step is the next white key. A skip jumps over one white key. The number stays by the note.",
+        notes: [C, D, E, F, G],
+      },
+      {
+        id: "guided",
+        kind: "guided",
+        title: "Step and skip",
+        blurb: "The letter stays hidden. The finger number stays on the staff. Play that white key. A wrong key waits here.",
+        notes: [C, D, E, G, F, D, E, C],
+      },
+      {
+        id: "melody",
+        kind: "melody",
+        title: "Thumb Path",
+        blurb: "An original Home Keys tune. Steps and skips, fingers 1 to 5. The number stays on the staff.",
+        notes: [C, E, G, E, D, F, E, C],
+      },
+    ],
+  },
 ];
 
 export const UNIT_ORDER = COURSE_UNITS.map((unit) => unit.id);
