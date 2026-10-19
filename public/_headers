@@ -1,3 +1,6 @@
+/*
+  X-Robots-Tag: noindex, nofollow
+
 # Cloudflare Pages cache policy. Service worker entrypoints must revalidate
 # so deploys are not stuck on a cached sw.js / workbox runtime / register script.
 # The web manifest can change between deploys, so keep its cache short.
