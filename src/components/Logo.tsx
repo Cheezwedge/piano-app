@@ -7,10 +7,11 @@ export function Logo({ size = 48 }: { size?: number }) {
       fill="none"
       aria-hidden="true"
     >
-      <path d="M8 30 L32 12 L56 30 V54 H8 Z" fill="#2F6F6A" />
-      <rect x="26" y="36" width="12" height="18" rx="2" fill="#F4EFE6" />
-      <rect x="40" y="28" width="5" height="16" rx="1.5" fill="#E8C36A" />
-      <circle cx="45" cy="28" r="3.5" fill="#E8C36A" />
+      <rect x="2" y="2" width="60" height="60" rx="16" fill="var(--logo-bg)" stroke="var(--gold)" strokeWidth="2" />
+      <path d="M14 32 L32 18 L50 32 V50 H14 Z" fill="var(--gold)" />
+      <rect x="27" y="36" width="10" height="14" rx="2" fill="var(--logo-bg)" />
+      <rect x="40" y="26" width="4" height="12" rx="1.5" fill="var(--teal)" />
+      <circle cx="44" cy="26" r="3" fill="var(--teal)" />
     </svg>
   );
 }
