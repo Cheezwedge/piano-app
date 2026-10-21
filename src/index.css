@@ -249,6 +249,25 @@ p {
   gap: 12px;
 }
 
+.lesson-bar {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.lesson-title {
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+
+.lesson-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 1 auto;
+}
+
 .brand {
   display: flex;
   gap: 10px;
@@ -1015,6 +1034,19 @@ input[type="checkbox"] {
   padding: 4px 12px;
   font-size: 0.85rem;
   z-index: 5;
+}
+
+.app-shell:has(.lesson-bar) > .session-chip {
+  display: none;
+}
+
+.lesson-tools .session-chip {
+  position: static;
+  top: auto;
+  left: auto;
+  transform: none;
+  z-index: auto;
+  flex: 0 0 auto;
 }
 
 .kid-list {

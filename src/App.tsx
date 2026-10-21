@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactElement } from "react";
-import { isKidFacingScreen, sessionExpired, sessionShouldRun } from "./lib/session";
+import { formatRemaining, isKidFacingScreen, sessionExpired, sessionRemainingMs, sessionShouldRun } from "./lib/session";
 import { TimeUpScreen } from "./screens/TimeUpScreen";
 import { CalibrateScreen } from "./screens/CalibrateScreen";
 import { HomeScreen } from "./screens/HomeScreen";
@@ -21,14 +21,15 @@ export function App() {
 
   const kidSession = sessionShouldRun(persist.activeKidId, persist.pinHash);
   const kidFacing = isKidFacingScreen(screen);
-  const limitMs = persist.sessionLimitMinutes * 60 * 1000;
   const timedOut =
     kidFacing && sessionExpired(sessionStartedAt, persist.sessionLimitMinutes, now);
 
-  const remaining =
-    kidSession && persist.sessionLimitMinutes > 0 && sessionStartedAt
-      ? Math.max(0, limitMs - (now - sessionStartedAt))
-      : null;
+  const remaining = sessionRemainingMs(
+    sessionStartedAt,
+    persist.sessionLimitMinutes,
+    now,
+    kidSession,
+  );
 
   let body: ReactElement;
   switch (screen) {
@@ -81,9 +82,3 @@ function activeTheme(persist: { kids: { id: string; theme?: string }[]; activeKi
   return kid?.theme ?? "cream";
 }
 
-function formatRemaining(ms: number): string {
-  const total = Math.ceil(ms / 1000);
-  const minutes = Math.floor(total / 60);
-  const seconds = total % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
