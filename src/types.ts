@@ -180,21 +180,21 @@ export const DEFAULT_STATE: PersistedState = {
   activeKidId: null,
 };
 
-/** Color mapping used by the UI, tests, and README. */
+/** Color mapping used by the UI, tests, and README. Tuned for the night theme. */
 export const FEEDBACK_COLORS = {
   correct: {
     label: "Correct",
-    hex: "#2F8F5B",
+    hex: "#8ED98A",
     meaning: "Right note on the first try, before a hint was shown.",
   },
   "correct-after-hint": {
     label: "Correct after hint",
-    hex: "#D4A017",
+    hex: "#F0C85A",
     meaning: "Right note after the target key hint was visible.",
   },
   wrong: {
     label: "Wrong",
-    hex: "#C44B3C",
+    hex: "#F0B4AA",
     meaning: "A different note. Practice mode stays on the same target.",
   },
 } as const;

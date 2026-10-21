@@ -220,8 +220,8 @@ export function HomeScreen() {
             className={kid?.theme === "cream" ? "reward-tile selected" : "reward-tile"}
             onClick={() => kid && updateKid(kid.id, { theme: "cream" })}
           >
-            <span>🕯️</span>
-            Warm Cream
+            <span>✨</span>
+            Night Sky
           </button>
           {REWARDS.map((reward) => {
             const unlocked = kid?.unlockedRewards.includes(reward.id);

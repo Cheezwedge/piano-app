@@ -115,7 +115,7 @@ Practice can earn looks. Nothing is sold, and practice is never blocked by energ
 - **1–3 stars** per stage: 3 if no wrong notes, 2 if wrongs stay at or under half the scored notes, otherwise 1. Replays keep the best star score.
 - **XP / level** on the kid profile: 50 XP the first time a stage is finished, plus 10 XP per star. 100 XP per level. Replays only add XP when stars improve.
 - **Streak** counts days practiced in a row. It is a quiet counter — no nagging.
-- **Cosmetics only** at later levels: stickers, a theme color, or an avatar badge. Kids can equip unlocked looks on the home path. Warm Cream is always available.
+- **Cosmetics only** at later levels: stickers, a theme color, or an avatar badge. Kids can equip unlocked looks on the home path. Night Sky is always available.
 - A short celebration plays when a stage is finished (and if the kid leveled up).
 - Grown-ups see stars, XP, and streak in settings. **Kids cannot reset progress** without the PIN.
 
@@ -123,9 +123,9 @@ Practice can earn looks. Nothing is sold, and practice is never blocked by energ
 
 | Color | Meaning |
 | --- | --- |
-| **Green** (`#2F8F5B`) | Correct — right note before a hint was shown. |
-| **Gold** (`#D4A017`) | Correct after hint — right note after the target key was highlighted. |
-| **Coral** (`#C44B3C`) | Wrong — any other note. The lesson does **not** advance. |
+| **Mint** (`#8ED98A`) | Correct — right note before a hint was shown. |
+| **Gold** (`#F0C85A`) | Correct after hint — right note after the target key was highlighted. |
+| **Soft rose** (`#F0B4AA`) | Wrong — any other note. A gentle cue. The lesson does **not** advance. |
 
 Guided stage shows the hint immediately, so those successes are gold. Garden Walk can still score green if the kid plays the note before a hint appears.
 

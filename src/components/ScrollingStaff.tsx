@@ -58,11 +58,11 @@ export function ScrollingStaff({ session, showFinger }: Props) {
         </defs>
         <Score clef={clef} />
         <line
+          className="staff-playhead"
           x1={NOW_X}
           x2={NOW_X}
           y1={12}
           y2={height - 28}
-          stroke="var(--teal)"
           strokeWidth={pulsing ? 3.4 : 2.2}
           data-testid="now-line"
         />
@@ -70,7 +70,7 @@ export function ScrollingStaff({ session, showFinger }: Props) {
           cx={NOW_X}
           cy={clef === "bass" ? bassLineY(2) : E4_Y - 2 * STAFF_LINE_GAP}
           r={pulsing ? 11 : 6}
-          fill="var(--teal)"
+          fill="var(--staff-playhead)"
           opacity={pulsing ? 0.45 : 0.18}
           data-testid="scroll-pulse"
           data-on={pulsing ? "true" : "false"}
@@ -141,10 +141,9 @@ function StaffLines({ lineY }: { lineY: (line: number) => number }) {
           key={line}
           x1="118"
           x2="700"
+          className="staff-line"
           y1={lineY(line)}
           y2={lineY(line)}
-          stroke="#2c2418"
-          strokeWidth="1.7"
         />
       ))}
     </>
@@ -250,27 +249,27 @@ function NoteHead({
   const bar = Math.max(18, durationBeats(duration) * PX - 22);
   const needsLedger = !bass && midi <= 60;
   return (
-    <g opacity={mark === "miss" || mark === "short" ? 0.55 : 1}>
-      {needsLedger ? <line x1={x - 22} x2={x + 22} y1={y} y2={y} stroke="#2c2418" strokeWidth="1.6" /> : null}
+    <g opacity={mark === "miss" || mark === "short" ? 0.85 : 1}>
+      {needsLedger ? <line className="staff-line" x1={x - 22} x2={x + 22} y1={y} y2={y} /> : null}
       <ellipse
         cx={x}
         cy={y}
         rx="15"
         ry="11"
         transform={`rotate(-18 ${x} ${y})`}
-        fill={open ? "var(--paper)" : color}
+        fill={open ? "var(--staff-bg)" : color}
         stroke={color}
         strokeWidth={open ? 2.6 : 0}
       />
       {stem ? <line x1={x + 11} x2={x + 11} y1={y} y2={y - 46} stroke={color} strokeWidth="2.1" /> : null}
-      <rect x={x + 8} y={y + 14} width={bar} height="7" rx="3.5" fill="#e4d8c4" />
+      <rect className="hold-track" x={x + 8} y={y + 14} width={bar} height="7" rx="3.5" />
       <rect
         x={x + 8}
         y={y + 14}
         width={Math.max(0, bar * progress)}
         height="7"
         rx="3.5"
-        fill="var(--teal)"
+        fill="var(--staff-playhead)"
         data-testid={fillId}
         data-progress={progress.toFixed(2)}
       />
@@ -286,6 +285,6 @@ function NoteHead({
 function headColor(mark: NoteMark | null): string {
   if (mark === "on-time") return "var(--correct)";
   if (mark === "early" || mark === "late") return "var(--hinted)";
-  if (mark === "miss" || mark === "short" || mark === "rest-sound") return "#a89880";
-  return "var(--ink)";
+  if (mark === "miss" || mark === "short" || mark === "rest-sound") return "var(--staff-muted)";
+  return "var(--staff-ink)";
 }

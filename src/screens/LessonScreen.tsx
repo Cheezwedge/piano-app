@@ -34,6 +34,7 @@ import {
 } from "../lib/together";
 import { scheduledLabel, upcomingTarget } from "../lib/timedPlay";
 import { isSongUnlocked, isUnitUnlocked, type StageAward } from "../lib/progress";
+import { formatRemaining, sessionRemainingMs, sessionShouldRun } from "../lib/session";
 import { useActiveKid, useApp } from "../store/AppState";
 import type { FeedbackKind, InputSource, LessonNote, LessonStage } from "../types";
 import { useTimedStage } from "./useTimedStage";
@@ -596,46 +597,49 @@ export function LessonScreen() {
   return (
     <main className="page lesson" data-testid="lesson-screen" data-unit-id={unit.id} data-practice-mode={persist.practiceMode}>
       <header className="lesson-bar">
-        <div>
+        <div className="lesson-title">
           <p className="eyebrow">{unit.title} · {stage.title}</p>
           <strong>{kid?.avatar} {kid?.name}</strong>
         </div>
-        <div className="mode-toggle" role="group" aria-label="Practice mode">
+        <div className="lesson-tools">
+          <div className="mode-toggle" role="group" aria-label="Practice mode">
+            <button
+              type="button"
+              className={persist.practiceMode === "wait" ? "chip selected" : "chip"}
+              data-testid="mode-wait"
+              aria-pressed={persist.practiceMode === "wait"}
+              onClick={() => updateSettings({ practiceMode: "wait" })}
+            >
+              Wait
+            </button>
+            <button
+              type="button"
+              className={persist.practiceMode === "timed" ? "chip selected" : "chip"}
+              data-testid="mode-timed"
+              aria-pressed={persist.practiceMode === "timed"}
+              onClick={() => updateSettings({ practiceMode: "timed" })}
+            >
+              Timed
+            </button>
+          </div>
+          <SessionTimer />
+          <div className="stage-pips" aria-label="Lesson stages">
+            {unit.stages.map((item, index) => (
+              <span key={item.id} className={index === stageIndex ? "on" : index < stageIndex ? "done" : ""} />
+            ))}
+          </div>
           <button
             type="button"
-            className={persist.practiceMode === "wait" ? "chip selected" : "chip"}
-            data-testid="mode-wait"
-            aria-pressed={persist.practiceMode === "wait"}
-            onClick={() => updateSettings({ practiceMode: "wait" })}
+            className="btn ghost"
+            data-testid="leave-lesson"
+            onClick={() => {
+              if (isParentUnlocked()) setScreen(homeScreen);
+              else setLeaveOpen(true);
+            }}
           >
-            Wait
-          </button>
-          <button
-            type="button"
-            className={persist.practiceMode === "timed" ? "chip selected" : "chip"}
-            data-testid="mode-timed"
-            aria-pressed={persist.practiceMode === "timed"}
-            onClick={() => updateSettings({ practiceMode: "timed" })}
-          >
-            Timed
+            Leave
           </button>
         </div>
-        <div className="stage-pips" aria-label="Lesson stages">
-          {unit.stages.map((item, index) => (
-            <span key={item.id} className={index === stageIndex ? "on" : index < stageIndex ? "done" : ""} />
-          ))}
-        </div>
-        <button
-          type="button"
-          className="btn ghost"
-          data-testid="leave-lesson"
-          onClick={() => {
-            if (isParentUnlocked()) setScreen(homeScreen);
-            else setLeaveOpen(true);
-          }}
-        >
-          Leave
-        </button>
       </header>
 
       <p className="stage-blurb">{stage.blurb}</p>
@@ -952,6 +956,22 @@ function FeedbackBanner({
   }
   if (feedback === "idle") return <p className="banner idle">Waiting for the matching key.</p>;
   return <p className="banner correct" data-testid="feedback-correct">Yes — first try.</p>;
+}
+
+function SessionTimer() {
+  const { persist, sessionStartedAt } = useApp();
+  const remaining = sessionRemainingMs(
+    sessionStartedAt,
+    persist.sessionLimitMinutes,
+    Date.now(),
+    sessionShouldRun(persist.activeKidId, persist.pinHash),
+  );
+  if (remaining == null) return null;
+  return (
+    <div className="session-chip" data-testid="session-remaining">
+      {formatRemaining(remaining)}
+    </div>
+  );
 }
 
 function wait(ms: number) {

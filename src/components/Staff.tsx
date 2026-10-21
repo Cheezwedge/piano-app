@@ -69,7 +69,7 @@ export function Staff({ note, feedback, showFinger, showName = true }: Props) {
         ? "var(--hinted)"
         : feedback === "wrong"
           ? "var(--wrong)"
-          : "var(--ink)";
+          : "var(--staff-ink)";
 
   const open = note.duration === "half" || note.duration === "whole";
   const stem = note.duration !== "whole" && !rest;
@@ -92,17 +92,16 @@ export function Staff({ note, feedback, showFinger, showName = true }: Props) {
         {[0, 1, 2, 3, 4].map((line) => (
           <line
             key={line}
+            className="staff-line"
             x1="86"
             x2="420"
             y1={bass ? bassLineY(line) : e4Y - line * LINE_GAP}
             y2={bass ? bassLineY(line) : e4Y - line * LINE_GAP}
-            stroke="#2c2418"
-            strokeWidth="1.7"
           />
         ))}
         {bass ? <BassClef /> : <TrebleClef />}
         {needsLedger ? (
-          <line x1={x - 26} x2={x + 26} y1={y} y2={y} stroke="#2c2418" strokeWidth="1.8" />
+          <line className="staff-line" x1={x - 26} x2={x + 26} y1={y} y2={y} />
         ) : null}
         {rest ? (
           <text x={x} y={y} textAnchor="middle" className="rest-svg">
@@ -116,7 +115,7 @@ export function Staff({ note, feedback, showFinger, showName = true }: Props) {
               rx="14"
               ry="10"
               transform={`rotate(-18 ${x} ${y})`}
-              fill={open ? "var(--paper)" : fill}
+              fill={open ? "var(--staff-bg)" : fill}
               stroke={fill}
               strokeWidth={open ? 2.4 : 0}
               data-testid="staff-note"
@@ -142,7 +141,7 @@ export function Staff({ note, feedback, showFinger, showName = true }: Props) {
 
 export function TrebleClef() {
   return (
-    <g fill="none" stroke="#2c2418" strokeLinecap="round" strokeLinejoin="round">
+    <g className="clef-stroke">
       <path
         d="M104 36
            C118 34 126 48 118 64
@@ -167,14 +166,14 @@ export function TrebleClef() {
            C60 174 76 166 88 176"
         strokeWidth="3.1"
       />
-      <circle cx="134" cy="118" r="3.2" fill="#2c2418" stroke="none" />
+      <circle className="clef-dot" cx="134" cy="118" r="3.2" />
     </g>
   );
 }
 
 export function BassClef() {
   return (
-    <g fill="#2c2418" transform={`translate(0 ${bassClefShiftY()})`} data-testid="bass-clef">
+    <g className="bass-clef" transform={`translate(0 ${bassClefShiftY()})`} data-testid="bass-clef">
       <path d="M92 78c18 0 34 14 34 32 0 22-20 38-46 38v-14c18 0 30-10 30-24 0-12-10-20-22-20-8 0-14 4-18 10l-10-10c8-8 18-12 32-12z" />
       <circle cx="138" cy="88" r="4" />
       <circle cx="138" cy="108" r="4" />

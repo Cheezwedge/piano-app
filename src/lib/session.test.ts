@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isKidFacingScreen, sessionExpired, sessionShouldRun } from "./session";
+import { formatRemaining, isKidFacingScreen, sessionExpired, sessionRemainingMs, sessionShouldRun } from "./session";
 
 describe("session time limit", () => {
   it("is inactive when the parent chose no limit", () => {
@@ -19,5 +19,16 @@ describe("session time limit", () => {
     expect(isKidFacingScreen("settings")).toBe(false);
     expect(sessionShouldRun("kid-1", "hash")).toBe(true);
     expect(sessionShouldRun(null, "hash")).toBe(false);
+  });
+
+  it("formats the countdown shown beside the lesson controls", () => {
+    const start = 1_000_000;
+    const now = start + 62_100;
+    const ms = sessionRemainingMs(start, 15, now, true);
+    expect(ms).toBe(15 * 60 * 1000 - 62_100);
+    expect(formatRemaining(ms ?? 0)).toBe("13:58");
+    expect(sessionRemainingMs(start, 0, now, true)).toBeNull();
+    expect(sessionRemainingMs(null, 15, now, true)).toBeNull();
+    expect(sessionRemainingMs(start, 15, now, false)).toBeNull();
   });
 });
